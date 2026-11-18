@@ -12,7 +12,7 @@
 
 ## 立即游玩
 
-- **在线版：** 部署完成后可在 GitHub Pages 直接游玩（见下方「部署」）。
+- **在线版：** <https://wuqu02.github.io/sanzhong-fengyun/>
 - **本地版：** 下载仓库后，直接双击 `index.html` 即可开始。
   - 也可以在仓库根目录运行 `python -m http.server 8080`，然后访问 `http://localhost:8080`。
   - 建议使用最新版 **Chrome / Edge**，1920×1080 或更高分辨率，佩戴耳机。
