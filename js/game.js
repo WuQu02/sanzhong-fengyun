@@ -58,6 +58,7 @@
       this.chapter = 0;
       this.cleared = 0;
       this.upgrades = [];
+      this._scholarSpoke = false; this._athleteSpoke = false;
       this.mods = this.computeMods();
       this.deaths = 0;
       this.stats = { enemies: 0, perfect: 0, maxCombo: 0, damage: 0 };
@@ -516,6 +517,7 @@
       this.chapter = 0;
       this.cleared = 0;
       this.upgrades = [];
+      this._scholarSpoke = false; this._athleteSpoke = false;
       this.completed = false;
       this.deaths = 0;
       this.playTime = 0;
@@ -649,6 +651,7 @@
       this.damageScale = 1.0;
       this.cleared = U.clamp(cleared || 0, 0, this.level.encounters ? this.level.encounters.length : 0);
       this.encounterIndex = this.cleared;
+      this._scholarSpoke = false; this._athleteSpoke = false;
       this.mods = this.computeMods();
       this.enemies = [];
       this.projectiles = [];
@@ -1019,6 +1022,8 @@
           this.el.bossPhase.textContent = '执念';
         }
         this.enemies.push(e);
+        if (e.type === 'scholar' && !this._scholarSpoke) { this._scholarSpoke = true; this.bark('眼镜学霸', '这道题选 C。你闪避的路径，我已经算过了。', 'boss'); }
+        if (e.type === 'athlete' && !this._athleteSpoke) { this._athleteSpoke = true; this.bark('体育生·佐藤', '正面来？你挺有勇气。', 'boss'); }
         for (let k = 0; k < 14; k++) {
           this.spawnParticle(x + U.rand(-30, 30), GROUND - U.rand(0, 150), U.rand(-80, 80), -U.rand(40, 180), U.rand(.4, .9), U.rand(2, 4), enc.elite ? '#ffb27a' : '#8deaf5', 100, true);
         }

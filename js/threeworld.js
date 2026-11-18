@@ -1271,6 +1271,45 @@
         const wingR = this._mesh(g, new THREE.BoxGeometry(s * .7, s * .08, s * .3), std(0x1b2229, { flat: true }), .42, s * 1.75, 0, 1, 1, 1, 0, 0, -.3);
         data.wings = [wingL, wingR];
         data.bob = .25; data.fly = true;
+      } else if (e.type === 'scholar') {
+        const s = e.size / 100;
+        this._mesh(g, new THREE.CapsuleGeometry(s * .09, s * .47, 5, 8), std(0x202934, { flat: true }), -.18, s * .42, 0);
+        this._mesh(g, new THREE.CapsuleGeometry(s * .09, s * .47, 5, 8), std(0x202934, { flat: true }), .18, s * .42, 0);
+        this._mesh(g, new THREE.CapsuleGeometry(s * .28, s * .48, 6, 12), std(0xdde3e1, { roughness: .8 }), 0, s * 1.04, 0, 1, 1, .78);
+        this._mesh(g, new THREE.ConeGeometry(s * .14, s * .5, 4), std(0x3f4c57, { flat: true }), -.11, s * 1.2, .22, 1, 1, .5, 0, 0, .25);
+        this._mesh(g, new THREE.SphereGeometry(s * .24, 16, 12), std(0xe0bca9, { roughness: .6 }), 0, s * 1.58, .02, .94, 1.05, .9);
+        this._mesh(g, new THREE.SphereGeometry(s * .25, 14, 10), std(0x17151a, { roughness: .6 }), 0, s * 1.69, -.06, 1.02, .72, .9);
+        // 厚底眼镜
+        for (const side of [-1, 1]) {
+          this._mesh(g, new THREE.TorusGeometry(s * .085, s * .018, 5, 16), std(0x12171d, { metalness: .2 }), side * s * .1, s * 1.59, .23, 1, .72, 1);
+          this._mesh(g, new THREE.CircleGeometry(s * .07, 12), basic(0xb9e2e8, { transparent: true, opacity: .32 }), side * s * .1, s * 1.59, .245, 1, .7, 1);
+        }
+        this._mesh(g, new THREE.BoxGeometry(s * .07, .012, .012), basic(0x15191e), 0, s * 1.6, .25);
+        this._mesh(g, new THREE.BoxGeometry(s * .2, .014, .012), basic(0x4c3130), 0, s * 1.42, .235);
+        // 发光的五年高考三年模拟
+        const book = this._mesh(g, new THREE.BoxGeometry(s * .38, s * .48, s * .07), std(0xe7dcc0, { emissive: 0x4e7380, ei: .25 }), s * .42, s * 1.02, .28, 1, 1, 1, 0, 0, -.12);
+        this._mesh(book, new THREE.BoxGeometry(s * .26, s * .06, s * .012), basic(0x316c8b), 0, s * .08, .05);
+        this._sprite(g, this.tex.glowCyan, 0x9defff, s * .42, s * 1.02, .35, 1.1, 1.1, .1, true);
+        // 悬浮粉笔
+        for (let i = 0; i < 3; i++) this._mesh(g, new THREE.CylinderGeometry(s * .025, s * .025, s * .18, 5), std(0xf2f0df), -.42 + i * .18, s * 1.5 + i * .1, -.12, 1, 1, 1, .4, 0, .3);
+        data.bob = .02;
+      } else if (e.type === 'athlete') {
+        const s = e.size / 100;
+        this._mesh(g, new THREE.CapsuleGeometry(s * .16, s * .52, 6, 8), std(0x1c2328, { flat: true }), -.23, s * .5, 0);
+        this._mesh(g, new THREE.CapsuleGeometry(s * .16, s * .52, 6, 8), std(0x1c2328, { flat: true }), .23, s * .5, 0);
+        this._mesh(g, new THREE.CapsuleGeometry(s * .42, s * .55, 7, 12), std(0xd9624f, { roughness: .8 }), 0, s * 1.13, 0, 1, 1, .82);
+        this._mesh(g, new THREE.SphereGeometry(s * .2, 12, 9), std(0xd0a58f, { roughness: .65 }), -.52, s * 1.28, 0, 1, .8, 1);
+        this._mesh(g, new THREE.SphereGeometry(s * .2, 12, 9), std(0xd0a58f, { roughness: .65 }), .52, s * 1.28, 0, 1, .8, 1);
+        this._mesh(g, new THREE.SphereGeometry(s * .22, 14, 10), std(0xd7ad95), 0, s * 1.7, .04, .95, 1, .9);
+        this._mesh(g, new THREE.SphereGeometry(s * .22, 12, 9), std(0x17171a, { flat: true }), 0, s * 1.8, -.04, 1, .65, .9);
+        this._mesh(g, new THREE.BoxGeometry(s * .46, s * .06, .04), std(0xf0e7dc), 0, s * 1.68, .2);
+        this._mesh(g, new THREE.CircleGeometry(s * .026, 8), basic(0xffe1aa), -.08, s * 1.71, .205);
+        this._mesh(g, new THREE.CircleGeometry(s * .026, 8), basic(0xffe1aa), .08, s * 1.71, .205);
+        // 实心球
+        this._mesh(g, new THREE.SphereGeometry(s * .24, 14, 10), std(0x33383d, { roughness: .45, metalness: .25 }), -.58, s * .78, .25);
+        // 护腕
+        this._mesh(g, new THREE.TorusGeometry(s * .15, s * .03, 5, 12), std(0x3b6480, { roughness: .5 }), -.52, s * 1.13, 0, 1, 1, 1, Math.PI / 2, 0, 0);
+        data.bob = .015;
       } else {
         const s = e.size / 100;
         const variant = e.variant || 'sword';

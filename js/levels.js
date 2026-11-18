@@ -141,7 +141,7 @@
           spawns: [
             { type: 'shield', dx: 330 }, { type: 'shield', dx: 690 },
             { type: 'paper', dx: 460 }, { type: 'paper', dx: 820 },
-            { type: 'crow', dx: 560 }
+            { type: 'crow', dx: 560 }, { type: 'scholar', dx: 900 }
           ],
           waves: [
             [{ type: 'shield', dx: 420 }, { type: 'paper', dx: 760 }],
@@ -206,7 +206,7 @@
           threshold: 1,
           spawns: [
             { type: 'fox', dx: 330 }, { type: 'fox', dx: 510 }, { type: 'fox', dx: 760 },
-            { type: 'crow', dx: 430 }, { type: 'crow', dx: 660 }
+            { type: 'crow', dx: 430 }, { type: 'crow', dx: 660 }, { type: 'athlete', dx: 900 }
           ],
           waves: [
             [{ type: 'fox', dx: 360 }, { type: 'fox', dx: 720 }],

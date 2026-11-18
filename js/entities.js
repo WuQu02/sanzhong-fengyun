@@ -11,6 +11,8 @@
     shield:  { hp: 230, size: 100, speed: 76, damage: 20, range: 125, windup: .82, active: .22, recover: .92, name: '铜甲武卒', armor: true },
     fox:     { hp: 125, size: 72, speed: 300, damage: 14, range: 145, windup: .42, active: .18, recover: .52, name: '影狐' },
     crow:    { hp: 85, size: 62, speed: 185, damage: 12, range: 300, windup: .55, active: .2, recover: .7, name: '机关鸦', flying: true },
+    scholar: { hp: 300, size: 88, speed: 150, damage: 14, range: 480, windup: .7, active: .12, recover: .7, name: '眼镜学霸', ranged: true },
+    athlete: { hp: 460, size: 108, speed: 125, damage: 24, range: 148, windup: .82, active: .2, recover: .9, name: '体育生·佐藤', armor: true },
     elite:   { hp: 760, size: 150, speed: 145, damage: 22, range: 175, windup: .72, active: .2, recover: .8, name: '心障', isElite: true }
   };
 
@@ -503,6 +505,8 @@
       const dist = Math.hypot(dx, dz);
       this.facing = dx >= 0 ? 1 : -1;
 
+      if (this.type === 'scholar') { this.updateScholar(dt, game, p); this._constrain(game); return; }
+      if (this.type === 'athlete') { this.updateAthlete(dt, game, p); this._constrain(game); return; }
       if (this.isElite) { this.updateElite(dt, game, p); this._constrain(game); return; }
 
       if (this.state === 'windup') {
@@ -574,6 +578,88 @@
       if (Math.hypot(p.x - this.x, (p.z || 0) - this.z) < reach && Math.abs(p.y - this.y) < 210) {
         if (p.hitBy(this.damage, this.x, game, this.cfg.name, this)) this.hasHit = true;
       }
+    }
+
+    updateScholar(dt, game, p) {
+      const dx = p.x - this.x, dz = (p.z || 0) - this.z;
+      const dist = Math.hypot(dx, dz);
+      this.facing = dx >= 0 ? 1 : -1;
+      if (this.state === 'windup') {
+        if (this.stateT >= this.cfg.windup) {
+          this.state = 'attack'; this.stateT = 0;
+          if (this.pattern === 'formula') {
+            const px = p.x + (p.vx || 0) * .35, pz = (p.z || 0) + (p.vz || 0) * .35;
+            game.hazards.push(new Hazard(game, { x: px, y: GROUND, z: pz, w: 130, h: 34, kind: 'spike', delay: .75, life: 1.5, damage: 16 * game.damageScale, seed: Math.random() * 10 }));
+            game.addText(this.x, this.y - 150, '解：x = ?', '#c7f6ff', 21, { life: 1.4 });
+            game.audio.sfx('warn');
+          } else {
+            for (let i = -1; i <= 1; i++) {
+              const tx = p.x + (p.vx || 0) * .28 + i * 44;
+              const tz = (p.z || 0) + (p.vz || 0) * .28;
+              const ddx = tx - this.x, ddz = tz - this.z;
+              const d = Math.hypot(ddx, ddz) || 1;
+              game.projectiles.push(new Projectile(game, {
+                x: this.x, y: this.y - 120, z: this.z, vx: ddx / d * 480, vy: (p.y - 110 - this.y) * .2, vz: ddz / d * 480,
+                r: 8, damage: 10 * game.damageScale, kind: 'chalk', owner: 'enemy', life: 2.2
+              }));
+            }
+            game.audio.sfx('bossCast');
+          }
+        }
+        return;
+      }
+      if (this.state === 'attack') {
+        if (this.stateT >= .28) { this.state = 'recover'; this.stateT = 0; }
+        return;
+      }
+      if (this.state === 'recover') {
+        if (this.stateT >= this.cfg.recover) { this.state = 'chase'; this.stateT = 0; this.attackCd = U.rand(1.1, 1.7); }
+        return;
+      }
+      // kite
+      const nx = dx / (dist || 1), nz = dz / (dist || 1);
+      if (dist < 300) { this.vx = U.damp(this.vx, -nx * this.speed, 5, dt); this.vz = U.damp(this.vz, -nz * this.speed, 5, dt); }
+      else if (dist > 460) { this.vx = U.damp(this.vx, nx * this.speed, 5, dt); this.vz = U.damp(this.vz, nz * this.speed, 5, dt); }
+      else { this.vx = U.damp(this.vx, 0, 8, dt); this.vz = U.damp(this.vz, 0, 8, dt); }
+      this.x += this.vx * dt; this.z += this.vz * dt;
+      if (dist < 145 && this.attackCd > .2) {
+        const away = dx >= 0 ? -1 : 1;
+        this.x += away * 160; this.z += U.rand(-70, 70);
+        game.spawnBurst(this.x, this.y - 80, '#c8eaff', 16, 200, { size: 2.5, life: .5, gravity: 0 });
+      }
+      if (this.attackCd <= 0) {
+        this.pattern = Math.random() < .36 ? 'formula' : 'chalk';
+        this.state = 'windup'; this.stateT = 0; this.attackCd = U.rand(1.35, 2.2);
+      }
+    }
+
+    updateAthlete(dt, game, p) {
+      const dx = p.x - this.x, dz = (p.z || 0) - this.z;
+      const dist = Math.hypot(dx, dz);
+      this.faceClock = (this.faceClock || 0) + dt;
+      if (this.faceClock > .55) { this.facing = dx >= 0 ? 1 : -1; this.faceClock = 0; }
+      if (this.state === 'windup') {
+        if (this.stateT >= this.cfg.windup) { this.state = 'attack'; this.stateT = 0; this.hasHit = false; }
+        return;
+      }
+      if (this.state === 'attack') {
+        if (this.stateT < this.cfg.active && !this.hasHit) {
+          if (dist < 175 && Math.abs(p.y - this.y) < 220) {
+            if (p.hitBy(this.damage * game.damageScale, this.x, game, this.name, this)) this.hasHit = true;
+          }
+        }
+        if (this.stateT >= this.cfg.active) { this.state = 'recover'; this.stateT = 0; }
+        return;
+      }
+      if (this.state === 'recover') {
+        if (this.stateT >= this.cfg.recover) { this.state = 'chase'; this.stateT = 0; this.attackCd = U.rand(.55, 1); }
+        return;
+      }
+      const nx = dx / (dist || 1), nz = dz / (dist || 1);
+      if (dist > 135) { this.vx = U.damp(this.vx, nx * this.speed, 5, dt); this.vz = U.damp(this.vz, nz * this.speed, 5, dt); }
+      else { this.vx = U.damp(this.vx, 0, 8, dt); this.vz = U.damp(this.vz, 0, 8, dt); }
+      this.x += this.vx * dt; this.z += this.vz * dt;
+      if (this.attackCd <= 0) { this.state = 'windup'; this.stateT = 0; this.attackCd = U.rand(.8, 1.3); }
     }
 
     updateElite(dt, game, p) {
@@ -671,6 +757,10 @@
       if (this.dead) return;
       let dmg = amount;
       let blocked = false;
+      if (this.type === 'athlete') {
+        const front = (source.x - this.x) * this.facing > 0;
+        if (front) { dmg *= .12; blocked = true; }
+      }
       if (this.type === 'shield' && !this.isElite) {
         const front = (source.x - this.x) * this.facing > 0;
         if (front) { dmg *= .32; blocked = true; }
