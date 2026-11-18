@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#070d14">
-  <meta name="description" content="《三中风云》——操控 DeepSeek 的 Q 萌形象「深寻」，在水墨风雪中迎战守心人刘奥。原创水墨武侠横版动作游戏。">
+  <meta name="description" content="《三中风云》——操控 DeepSeek 的 Q 萌形象（名字可自定义），执行名为“深寻”的任务，在三中梦境的风雪中迎战守心人刘奥。原创 3D 水墨武侠动作游戏，以邵东三中校园为虚构梦境背景。">
   <meta property="og:title" content="三中风云｜刘奥 OUT">
   <meta property="og:description" content="一场关于守护与放手的水墨武侠梦。浏览器即开即玩，约 40–60 分钟。">
   <meta property="og:image" content="preview.png">
@@ -14,6 +14,7 @@
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+  <canvas id="world3d" aria-hidden="true"></canvas>
   <canvas id="game" aria-label="三中风云 游戏画面"></canvas>
 
   <div id="ui">
@@ -22,11 +23,11 @@
       <div class="title-topline">
         <span>DEEPSEEK FAN PROJECT</span>
         <span class="vertical-rule"></span>
-        <span>东方幻想 · 横版动作</span>
+        <span>邵东三中 · 3D 东方幻想</span>
       </div>
 
       <div class="title-lockup">
-        <p class="title-eyebrow">风 雪 问 心 · 三 中</p>
+        <p class="title-eyebrow">邵 东 三 中 · 风 雪 问 心</p>
         <h1 class="game-title"><span>三中</span><i>风云</i></h1>
         <div class="title-rule"><b></b><em>刘奥 OUT</em><b></b></div>
         <p class="title-motto">雪落无声，问心有声。</p>
@@ -37,6 +38,7 @@
         <button class="menu-btn" data-action="continue" id="continueBtn" hidden><span class="btn-index">续</span><span>续梦 · 继续</span><small>承接上次心灯</small></button>
         <button class="menu-btn" data-action="help"><span class="btn-index">式</span><span>招式 · 操作</span><small>查看键位</small></button>
         <button class="menu-btn" data-action="settings"><span class="btn-index">律</span><span>音律 · 设置</span><small>音量与画面</small></button>
+        <button class="menu-btn" data-action="achievements"><span class="btn-index">录</span><span>心录 · 成就</span><small>彩蛋与足迹</small></button>
       </nav>
 
       <div class="title-side-note">
@@ -46,7 +48,7 @@
       </div>
 
       <div class="title-footer">
-        <p>非官方同人作品 · 人物与情节均为艺术化虚构演绎，与现实中的任何个人无关。仅供娱乐，请勿模仿游戏中的危险动作。</p>
+        <p>非官方同人作品 · 以邵东三中为虚构背景，校园、人物与情节均为艺术化演绎，不代表真实学校与师生；未使用真实校徽、照片或录音。仅供娱乐，请勿模仿游戏中的危险动作。</p>
         <span>建议佩戴耳机 · 键盘操作 · 1920×1080 最佳</span>
       </div>
       <div class="title-ink" aria-hidden="true"></div>
@@ -57,18 +59,20 @@
       <div class="hud-left">
         <div class="hud-portrait"><canvas id="hudPortrait" width="160" height="160"></canvas><i class="portrait-ring"></i></div>
         <div class="hud-stats">
-          <div class="hud-name"><b>深 寻</b><span>DEEPSEEK</span><em id="hudChapter">序章</em></div>
+          <div class="hud-name"><b id="hudName">深 寻</b><span>DEEPSEEK</span><em id="hudChapter">序章</em></div>
           <div class="bar hp-bar"><i id="hpFill"></i><span id="hpText">160 / 160</span></div>
           <div class="bar qi-bar"><i id="qiFill"></i><span>气</span></div>
           <div class="hud-badges">
             <span class="flask-badge" id="flaskBadge"><i>鲸露</i><b id="flaskCount">3</b></span>
             <span class="focus-badge" id="focusBadge"><i>心念</i><b id="focusText">0%</b></span>
+            <span class="buff-badge" id="buffBadge" hidden>喵力</span>
           </div>
         </div>
       </div>
 
       <div class="hud-right">
         <div class="stage-label" id="stageLabel">第一章 · 雪落云门</div>
+        <div class="mission-label">任务代号 · 深寻</div>
         <div class="time-label"><span id="timerText">00:00</span><small>梦境时刻</small></div>
         <div class="objective" id="objective">循着心念的裂痕前行</div>
       </div>
@@ -84,7 +88,13 @@
       <div class="boss-track"><i id="bossFill"></i><span class="boss-notch n1"></span><span class="boss-notch n2"></span></div>
     </div>
 
+    <div id="interactPrompt" class="interact-prompt"><kbd>F</kbd><span id="interactName">互动</span><em>靠近·轻触</em></div>
     <div id="toast" class="toast"></div>
+    <div id="omenToast" class="omen-toast">
+      <span>天 之 象</span>
+      <b id="omenName"></b>
+      <p id="omenSub"></p>
+    </div>
     <div id="chapterCard" class="chapter-card">
       <span id="chapterCardNum">第一章</span>
       <h2 id="chapterCardName">雪落云门</h2>
@@ -93,12 +103,17 @@
     <div id="tutorial" class="tutorial"></div>
     <div id="subtitleBark" class="bark"></div>
 
+    <div id="achievementToast" class="achievement-toast">
+      <div class="ach-mark" id="achToastSeal">鲸</div>
+      <div class="ach-copy"><span>心录 · 成就解锁</span><b id="achToastName"></b><p id="achToastDesc"></p></div>
+    </div>
+
     <!-- 剧情对话 -->
     <div id="dialogue" class="dialogue hidden">
       <div class="dialogue-ornament"></div>
       <div class="dialogue-portrait"><canvas id="dialoguePortrait" width="220" height="220"></canvas></div>
       <div class="dialogue-body">
-        <div class="dialogue-name" id="dialogueName">深寻</div>
+        <div class="dialogue-name" id="dialogueName">DeepSeek</div>
         <p class="dialogue-text" id="dialogueText"></p>
         <div class="dialogue-continue"><span>空格 / 点击</span><i></i></div>
       </div>
@@ -110,6 +125,7 @@
       <div class="cinema-bar top"></div>
       <div class="cinema-bar bottom"></div>
       <div class="cinema-chapter" id="cinemaChapter">序 · 雪落无声</div>
+      <div class="cinema-portrait"><canvas id="cinemaPortrait" width="220" height="220"></canvas></div>
       <button class="skip-btn" id="cinemaSkip">跳过序幕 <kbd>Esc</kbd></button>
       <div class="cinema-caption">
         <div class="cinema-speaker" id="cinemaSpeaker"></div>
@@ -125,6 +141,7 @@
         <h2>暂停</h2>
         <div class="pause-actions">
           <button class="ink-btn primary" data-action="resume">继续前行</button>
+          <button class="ink-btn" data-action="achievements">心录 · 成就</button>
           <button class="ink-btn" data-action="help">查看招式</button>
           <button class="ink-btn" data-action="settings">音律设置</button>
           <button class="ink-btn danger" data-action="title">回到标题</button>
@@ -146,12 +163,44 @@
           <div class="help-item"><kbd>L</kbd><span>闪身 · 短暂无敌</span></div>
           <div class="help-item"><kbd>E</kbd><span>鲸露 · 回复生命</span></div>
           <div class="help-item"><kbd>U</kbd><span>鲸落 · 心念满时释放</span></div>
+          <div class="help-item"><kbd>F</kbd><span>与附近的生灵、器物互动</span></div>
           <div class="help-item"><kbd>Esc</kbd><span>暂停 / 跳过过场</span></div>
         </div>
         <div class="help-tip">
           <b>完美闪身</b><span>在攻击命中前一瞬按 <kbd>L</kbd>，可令梦境减速，并快速积攒气与心念。</span>
         </div>
         <button class="ink-btn primary wide" data-action="closeHelp">明白了</button>
+      </div>
+    </section>
+
+    <!-- 成就 -->
+    <section id="achievementsScreen" class="screen modal-screen achievements-screen hidden">
+      <div class="achievements-panel">
+        <div class="achievements-head">
+          <div>
+            <p class="panel-eyebrow">心录 · 风雪留痕</p>
+            <h2>成就与彩蛋</h2>
+          </div>
+          <div class="ach-progress"><b id="achProgressText">0 / 15</b><span>已解锁</span></div>
+        </div>
+        <div id="achievementList" class="achievement-list"></div>
+        <p class="achievements-tip">有些名字、动作和藏在起点身后的东西，也会被心录记住。</p>
+        <button class="ink-btn primary wide" data-action="closeAchievements">合上心录</button>
+      </div>
+    </section>
+
+    <!-- 自定义名字 -->
+    <section id="nameScreen" class="screen modal-screen name-screen hidden">
+      <div class="modal-panel name-panel">
+        <p class="panel-eyebrow">入梦留名</p>
+        <h2>你叫什么名字？</h2>
+        <p class="name-desc">这个名字会写进这一卷风雪，也会留在自动存档里。</p>
+        <input id="playerNameInput" class="name-input" type="text" maxlength="10" placeholder="DeepSeek" autocomplete="off" spellcheck="false" aria-label="玩家名字">
+        <p class="name-hint">最多十字 · 留空则仍叫「DeepSeek」</p>
+        <div class="name-actions">
+          <button class="ink-btn primary" data-action="confirmName">写下名字 · 入梦</button>
+          <button class="ink-btn" data-action="cancelName">再想想</button>
+        </div>
       </div>
     </section>
 
@@ -229,6 +278,7 @@
         <button data-touch="attack" class="t-attack">斩</button>
         <button data-touch="skill" class="t-skill">潮</button>
         <button data-touch="heal" class="t-heal">露</button>
+        <button data-touch="interact" class="t-interact">触</button>
         <button data-touch="ultimate" class="t-ult">鲸</button>
       </div>
     </div>
@@ -239,7 +289,11 @@
   <script src="js/utils.js"></script>
   <script src="js/input.js"></script>
   <script src="js/audio.js"></script>
+  <script src="js/three.min.js"></script>
   <script src="js/art.js"></script>
+  <script src="js/threeworld.js"></script>
+  <script src="js/omens.js"></script>
+  <script src="js/interactables3d.js"></script>
   <script src="js/story.js"></script>
   <script src="js/entities.js"></script>
   <script src="js/levels.js"></script>

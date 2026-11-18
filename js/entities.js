@@ -33,6 +33,7 @@
       this.focus = 0;
       this.maxFlasks = 3 + (m.flasks || 0); this.flasks = this.maxFlasks;
       this.speed = 430 * (m.moveSpeed || 1);
+      this.speedBuff = 1;
       this.state = 'idle'; this.stateT = 0; this.animTime = 0;
       this.attackIndex = 0; this.attackQueued = false; this.attackHits = new Set();
       this.jumpBuffer = 0; this.coyote = 0; this.jumps = 0;
@@ -105,7 +106,7 @@
       const canMove = !['attack', 'dodge', 'hurt', 'ultimate', 'dead'].includes(this.state);
       if (canMove) {
         const accel = this.onGround ? 22 : 11;
-        const target = axis * this.speed * (this.state === 'skill' ? .3 : 1);
+        const target = axis * this.speed * this.speedBuff * (this.state === 'skill' ? .3 : 1);
         this.vx = U.damp(this.vx, target, accel, dt);
         if (axis !== 0 && this.state !== 'skill' && this.state !== 'heal') this.facing = axis;
       } else if (this.state === 'dodge') {

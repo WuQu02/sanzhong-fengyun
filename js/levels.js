@@ -22,7 +22,8 @@
         { key: 'J', text: '三段连斩', dur: 4.2 },
         { key: 'K', text: '潮涌斩 · 消耗气', dur: 4.3 },
         { key: 'L', text: '闪身 · 命中前一瞬可完美闪身', dur: 5 },
-        { key: 'E', text: '鲸露疗伤 · U 心念满时释放鲸落', dur: 5.5 }
+        { key: 'E', text: '鲸露疗伤 · U 心念满时释放鲸落', dur: 5.5 },
+        { key: 'F', text: '与雪兔、猫、长明灯等环境生灵互动', dur: 5 }
       ],
       encounters: [
         {
@@ -30,7 +31,7 @@
           triggerX: 900,
           arena: [270, 2100],
           threshold: 1,
-          barks: [['深寻', '心念结成了墨。', 'player']],
+          barks: [['{name}', '心念结成了墨。', 'player']],
           spawns: [
             { type: 'inkling', dx: 360 }, { type: 'inkling', dx: 600 }
           ],
@@ -49,7 +50,7 @@
           triggerX: 2670,
           arena: [2130, 3620],
           threshold: 1,
-          barks: [['深寻', '风雪里，有东西在盯着我。', 'player']],
+          barks: [['{name}', '风雪里，有东西在盯着我。', 'player']],
           spawns: [
             { type: 'inkling', dx: 300 }, { type: 'inkling', dx: 500 },
             { type: 'inkling', dx: 720 }, { type: 'paper', dx: 640, flying: false }

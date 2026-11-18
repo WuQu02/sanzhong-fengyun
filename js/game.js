@@ -4,9 +4,10 @@
 
   const SAVE_KEY = 'sanzhongfengyun_save_v1';
   const SETTINGS_KEY = 'sanzhongfengyun_settings_v1';
+  const ACH_KEY = 'sanzhongfengyun_achievements_v1';
   const GROUND = window.GAME_GROUND || 850;
   const DIALOGUE_NAMES = {
-    shen: '深寻', liuao: '刘奥', alan: '刘亚岚', narrator: '旁白', echo: '回响', system: '心念'
+    shen: 'DeepSeek', liuao: '刘奥', alan: '刘亚岚', narrator: '周娣', echo: '回响', system: '心念'
   };
   const TAU = Math.PI * 2;
   const $ = (id) => document.getElementById(id);
@@ -19,7 +20,7 @@
       this.audio = new AudioEngine();
       this.el = {
         title: $('titleScreen'), continueBtn: $('continueBtn'),
-        hud: $('hud'), hudPortrait: $('hudPortrait'), hudChapter: $('hudChapter'),
+        hud: $('hud'), hudPortrait: $('hudPortrait'), hudName: $('hudName'), hudChapter: $('hudChapter'),
         hpFill: $('hpFill'), hpText: $('hpText'), qiFill: $('qiFill'),
         flaskCount: $('flaskCount'), focusText: $('focusText'), focusBadge: $('focusBadge'),
         stageLabel: $('stageLabel'), timerText: $('timerText'), objective: $('objective'),
@@ -27,13 +28,18 @@
         bossBar: $('bossBar'), bossName: $('bossName'), bossTitle: $('bossTitle'),
         bossPhase: $('bossPhase'), bossFill: $('bossFill'),
         toast: $('toast'), chapterCard: $('chapterCard'), chapterCardNum: $('chapterCardNum'),
+        interactPrompt: $('interactPrompt'), interactName: $('interactName'),
+        omenToast: $('omenToast'), omenName: $('omenName'), omenSub: $('omenSub'),
+        achToast: $('achievementToast'), achToastSeal: $('achToastSeal'), achToastName: $('achToastName'), achToastDesc: $('achToastDesc'),
+        achScreen: $('achievementsScreen'), achList: $('achievementList'), achProgressText: $('achProgressText'), buffBadge: $('buffBadge'),
         chapterCardName: $('chapterCardName'), chapterCardSub: $('chapterCardSub'),
         tutorial: $('tutorial'), bark: $('subtitleBark'),
         dialogue: $('dialogue'), dialoguePortrait: $('dialoguePortrait'),
         dialogueName: $('dialogueName'), dialogueText: $('dialogueText'),
-        cinematic: $('cinematic'), cinemaChapter: $('cinemaChapter'), cinemaSkip: $('cinemaSkip'),
+        cinematic: $('cinematic'), cinemaChapter: $('cinemaChapter'), cinemaSkip: $('cinemaSkip'), cinemaPortrait: $('cinemaPortrait'),
         cinemaText: $('cinemaText'), cinemaSpeaker: $('cinemaSpeaker'), cinemaHint: $('cinemaHint'),
         pause: $('pauseScreen'), help: $('helpScreen'), settings: $('settingsScreen'),
+        nameScreen: $('nameScreen'), playerNameInput: $('playerNameInput'),
         upgrade: $('upgradeScreen'), upgradeCards: $('upgradeCards'),
         death: $('deathScreen'), bigCai: $('bigCai'),
         victoryStamp: $('victoryStamp'), ending: $('endingScreen'), endingStats: $('endingStats'),
@@ -108,6 +114,20 @@
       this.victoryStampShown = false;
       this.modalReturn = null;
       this.settings = this.loadSettings();
+      this.playerName = this.settings.playerName || 'DeepSeek';
+      this.namePromptOpen = false;
+      this.achData = this.loadAchievements();
+      this.achQueue = [];
+      this.achShowing = false;
+      this.achToastTimer = null;
+      this.secrets = [];
+      this.three = null;
+      try {
+        if (window.ThreeWorld) this.three = new ThreeWorld(this);
+      } catch (e) {
+        console.warn('3D 场景初始化失败，使用二维回退。', e);
+        this.three = null;
+      }
       this.bindUI();
       this.resize();
       window.addEventListener('resize', () => this.resize());
@@ -143,6 +163,7 @@
       const unlock = () => { this.ensureAudio(); this.audio.resume(); };
       window.addEventListener('pointerdown', unlock, { passive: true });
       window.addEventListener('keydown', unlock);
+      window.addEventListener('pointerdown', (e) => this.handlePetPointer(e), { passive: true });
 
       [['volMaster', 'master'], ['volMusic', 'music'], ['volSfx', 'sfx'], ['volVoice', 'voice']].forEach(([id, key]) => {
         const el = this.el[id];
@@ -161,15 +182,33 @@
         this.settings.reducedMotion = this.el.toggleMotion.checked;
         this.saveSettings();
       });
+      this.el.playerNameInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); this.confirmPlayerName(); }
+        else if (e.key === 'Escape') { e.preventDefault(); this.cancelNamePrompt(); }
+      });
       if (U.isTouch()) this.el.touch.classList.remove('hidden');
+    }
+
+    handlePetPointer(e) {
+      if (this.state !== 'playing' || !this.three || this.three.failed || !this.player) return;
+      if (e.target && e.target.closest && e.target.closest('button,input,.screen,.dialogue,.cinematic')) return;
+      const p = this.three.projectPet();
+      if (!p || !p.visible) return;
+      const sx = this.offsetX + p.x * this.renderScale;
+      const sy = this.offsetY + p.y * this.renderScale;
+      if (Math.hypot(e.clientX - sx, e.clientY - sy) < 110) this.petWhale();
     }
 
     handleAction(action, btn) {
       this.ensureAudio();
       this.audio.sfx(action === 'title' || action === 'closeSettings' ? 'uiBack' : 'ui');
       switch (action) {
-        case 'new': this.startNewGame(); break;
+        case 'new': this.beginNewGamePrompt(); break;
+        case 'achievements': this.openAchievements(); break;
+        case 'closeAchievements': this.closeAchievements(); break;
         case 'continue': this.continueGame(); break;
+        case 'confirmName': this.confirmPlayerName(); break;
+        case 'cancelName': this.cancelNamePrompt(); break;
         case 'help': this.openHelp(); break;
         case 'settings': this.openSettings(); break;
         case 'closeHelp': this.closeHelp(); break;
@@ -201,14 +240,123 @@
       this.offsetX = (this.vw - 1920 * this.renderScale) / 2;
       this.offsetY = (this.vh - 1080 * this.renderScale) / 2;
       document.documentElement.style.setProperty('--ui-scale', this.renderScale);
+      if (this.three && !this.three.failed) this.three.resize();
     }
 
     loadSettings() {
       return Object.assign({
-        master: 80, music: 55, sfx: 75, voice: 80, shake: true, reducedMotion: false
+        master: 80, music: 55, sfx: 75, voice: 80, shake: true, reducedMotion: false, playerName: 'DeepSeek'
       }, U.storageGet(SETTINGS_KEY, {}));
     }
     saveSettings() { U.storageSet(SETTINGS_KEY, this.settings); }
+    formatText(text) { return String(text == null ? '' : text).replace(/\{name\}/g, this.playerName || 'DeepSeek'); }
+
+    loadAchievements() {
+      const d = U.storageGet(ACH_KEY, {});
+      return {
+        unlocked: (d && d.unlocked) || {},
+        perfect: (d && d.perfect) || 0,
+        secrets: Array.isArray(d && d.secrets) ? d.secrets.slice() : [],
+        interacted: Array.isArray(d && d.interacted) ? d.interacted.slice() : [],
+        busy: (d && d.busy) || 0
+      };
+    }
+    saveAchievements() { U.storageSet(ACH_KEY, this.achData); }
+
+    unlockAchievement(id) {
+      const a = (window.ACHIEVEMENTS || []).find(x => x.id === id);
+      if (!a || this.achData.unlocked[id]) return;
+      this.achData.unlocked[id] = true;
+      this.saveAchievements();
+      this.queueAchToast(a);
+      this.renderAchievements();
+    }
+
+    queueAchToast(a) {
+      this.achQueue.push(a);
+      if (!this.achShowing) this.showNextAchToast();
+    }
+    showNextAchToast() {
+      if (this.achShowing) return;
+      const a = this.achQueue.shift();
+      if (!a) return;
+      this.achShowing = true;
+      this.el.achToastSeal.textContent = a.seal;
+      this.el.achToastName.textContent = a.name;
+      this.el.achToastDesc.textContent = a.desc;
+      this.el.achToast.classList.add('show');
+      this.audio.sfx('life');
+      clearTimeout(this.achToastTimer);
+      this.achToastTimer = setTimeout(() => {
+        this.el.achToast.classList.remove('show');
+        setTimeout(() => { this.achShowing = false; this.showNextAchToast(); }, 450);
+      }, 3300);
+    }
+
+    renderAchievements() {
+      if (!this.el.achList) return;
+      const list = window.ACHIEVEMENTS || [];
+      const unlocked = this.achData.unlocked || {};
+      const count = list.filter(a => unlocked[a.id]).length;
+      this.el.achProgressText.textContent = `${count} / ${list.length}`;
+      this.el.achList.innerHTML = '';
+      for (const a of list) {
+        const got = !!unlocked[a.id];
+        const card = document.createElement('div');
+        card.className = 'achievement-card' + (got ? '' : ' locked');
+        const seal = document.createElement('div'); seal.className = 'seal'; seal.textContent = got ? a.seal : '？';
+        const copy = document.createElement('div');
+        const b = document.createElement('b'); b.textContent = got ? a.name : '未写入心录';
+        const p = document.createElement('p'); p.textContent = got ? a.desc : '尚未写下。去风雪里找找看。';
+        copy.append(b, p); card.append(seal, copy); this.el.achList.appendChild(card);
+      }
+    }
+
+    openAchievements() {
+      if (this.state === 'playing') this.togglePause(true);
+      this.modalReturn = this.state === 'paused' ? 'pause' : 'title';
+      this.el.pause.classList.add('hidden');
+      this.el.help.classList.add('hidden');
+      this.el.settings.classList.add('hidden');
+      this.el.achScreen.classList.remove('hidden');
+      this.renderAchievements();
+      this.audio.sfx('ui');
+    }
+    closeAchievements() {
+      this.el.achScreen.classList.add('hidden');
+      if (this.modalReturn === 'pause') this.el.pause.classList.remove('hidden');
+      this.modalReturn = null;
+    }
+
+    initSecrets() {
+      this.secrets = [];
+      if (!this.level) return;
+      const s = (window.SECRET_LORE || {})[this.level.id];
+      if (s && !this.achData.secrets.includes(s.id)) this.secrets.push({ ...s, collected: false });
+    }
+    collectSecret(s) {
+      if (!s || s.collected) return;
+      s.collected = true;
+      if (!this.achData.secrets.includes(s.id)) this.achData.secrets.push(s.id);
+      this.saveAchievements();
+      this.audio.sfx('life');
+      this.showToast(`彩蛋 · 鲸影 ${this.achData.secrets.length} / 3`, 'gold');
+      this.bark('鲸影', s.text, null);
+      this.addText(this.player.x, this.player.y - 210, '鲸影', '#bffaff', 28, { bold: true, life: 1.2 });
+      this.spawnBurst(this.player.x, 760, '#a3f6ff', 26, 220, { size: 3, life: .8, gravity: 20, additive: true });
+      if (this.achData.secrets.length >= 3) this.unlockAchievement('deepsea');
+    }
+
+    petWhale() {
+      if (!this.player) return;
+      this.unlockAchievement('whale_pet');
+      this.audio.sfx('life');
+      this.bark('小鲸', '小鲸开心地转了个圈，吐出一个蓝色的泡泡。', null);
+      this.addText(this.player.x + 45, this.player.y - 190, '贴贴 ♡', '#9ff7ff', 23, { bold: true, life: 1.1 });
+      for (let i = 0; i < 12; i++) {
+        this.spawnParticle(this.player.x + 60 + U.rand(-30, 30), this.player.y - 150 + U.rand(-20, 20), U.rand(-40, 40), -U.rand(30, 100), U.rand(.5, 1), U.rand(2, 4), '#9ff7ff', 0, true);
+      }
+    }
     syncSettingsUI() {
       this.el.volMaster.value = this.settings.master; this.el.volMasterVal.textContent = this.settings.master;
       this.el.volMusic.value = this.settings.music; this.el.volMusicVal.textContent = this.settings.music;
@@ -252,8 +400,8 @@
         } else if (this.state === 'victory') {
           this.updateVictory(dt);
         } else if (this.state === 'title') {
-          if (this.input.justPressed('confirm-key') && this.el.help.classList.contains('hidden') && this.el.settings.classList.contains('hidden')) {
-            this.startNewGame();
+          if (this.input.justPressed('confirm-key') && !this.namePromptOpen && this.el.help.classList.contains('hidden') && this.el.settings.classList.contains('hidden') && this.el.achScreen.classList.contains('hidden')) {
+            this.beginNewGamePrompt();
           }
         }
 
@@ -302,10 +450,15 @@
       this.el.pause.classList.add('hidden');
       this.el.help.classList.add('hidden');
       this.el.settings.classList.add('hidden');
+      this.el.nameScreen.classList.add('hidden');
+      this.el.achScreen.classList.add('hidden');
+      this.el.achToast.classList.remove('show');
+      this.el.omenToast.classList.remove('show');
       this.el.upgrade.classList.add('hidden');
       this.el.death.classList.add('hidden');
       this.el.victoryStamp.classList.add('hidden');
       this.el.ending.classList.add('hidden');
+      this.namePromptOpen = false;
       this.el.chapterCard.classList.remove('show');
       this.el.tutorial.innerHTML = '';
       this.el.bark.classList.remove('show');
@@ -322,10 +475,44 @@
       if (this.audioReady) this.audio.startMusic('title');
     }
 
+    beginNewGamePrompt() {
+      this.ensureAudio();
+      this.namePromptOpen = true;
+      this.el.help.classList.add('hidden');
+      this.el.settings.classList.add('hidden');
+      this.el.pause.classList.add('hidden');
+      this.el.nameScreen.classList.remove('hidden');
+      this.el.playerNameInput.value = this.playerName || this.settings.playerName || 'DeepSeek';
+      setTimeout(() => {
+        if (!this.namePromptOpen) return;
+        this.el.playerNameInput.focus();
+        this.el.playerNameInput.select();
+      }, 80);
+    }
+
+    cancelNamePrompt() {
+      this.namePromptOpen = false;
+      this.el.nameScreen.classList.add('hidden');
+      this.input.reset();
+    }
+
+    confirmPlayerName() {
+      if (!this.namePromptOpen) return;
+      let name = (this.el.playerNameInput.value || '').replace(/[\r\n\t]/g, ' ').trim().replace(/\s+/g, ' ').slice(0, 10);
+      if (!name) name = 'DeepSeek';
+      this.playerName = name;
+      this.settings.playerName = name;
+      this.saveSettings();
+      this.namePromptOpen = false;
+      this.el.nameScreen.classList.add('hidden');
+      this.startNewGame();
+    }
+
     startNewGame() {
       this.ensureAudio();
       this.audio.stopVoice();
       this.clearTipTimers();
+      this.playerName = this.playerName || this.settings.playerName || 'DeepSeek';
       this.chapter = 0;
       this.cleared = 0;
       this.upgrades = [];
@@ -346,11 +533,16 @@
       this.el.pause.classList.add('hidden');
       this.el.help.classList.add('hidden');
       this.el.settings.classList.add('hidden');
+      this.el.nameScreen.classList.add('hidden');
+      this.el.achScreen.classList.add('hidden');
       this.el.dialogue.classList.add('hidden');
       this.el.victoryStamp.classList.add('hidden');
       this.el.bossBar.classList.add('hidden');
       this.el.hud.classList.add('hidden');
       this.el.tutorial.innerHTML = '';
+      this.namePromptOpen = false;
+      this.unlockAchievement('awaken');
+      if (/刘奥|刘亚岚/.test(this.playerName)) this.unlockAchievement('same_name');
       this.startIntro();
     }
 
@@ -372,7 +564,9 @@
     continueGame() {
       this.ensureAudio();
       const save = this.readSave();
-      if (!save || save.completed) { this.startNewGame(); return; }
+      if (!save || save.completed) { this.beginNewGamePrompt(); return; }
+      this.playerName = save.playerName || this.settings.playerName || 'DeepSeek';
+      this.settings.playerName = this.playerName;
       this.chapter = U.clamp(save.chapter || 0, 0, LEVELS.length - 1);
       this.cleared = save.cleared || 0;
       this.upgrades = Array.isArray(save.upgrades) ? save.upgrades : [];
@@ -408,6 +602,7 @@
         playTime: this.playTime,
         deaths: this.deaths,
         stats: this.stats,
+        playerName: this.playerName,
         completed: completed === undefined ? this.completed : completed,
         time: Date.now()
       };
@@ -441,6 +636,14 @@
       opts = opts || {};
       this.chapter = U.clamp(chapterIndex, 0, LEVELS.length - 1);
       this.level = LEVELS[this.chapter];
+      this.initSecrets();
+      this.interactables = (window.INTERACTABLES && window.INTERACTABLES[this.level.id] ? window.INTERACTABLES[this.level.id] : []).map(o => ({ ...o, used: false, interactAt: 0 }));
+      this.nearInteractable = null;
+      this.idleTime = 0;
+      this.thinkShown = false;
+      this.catBuffUntil = 0;
+      this.busyToastAt = 0;
+      if (this.el.interactPrompt) this.el.interactPrompt.classList.remove('show');
       this.worldWidth = this.level.width;
       this.stageIndex = this.chapter;
       this.damageScale = 1.0;
@@ -484,6 +687,10 @@
       this.el.pause.classList.add('hidden');
       this.el.help.classList.add('hidden');
       this.el.settings.classList.add('hidden');
+      this.el.nameScreen.classList.add('hidden');
+      this.el.achScreen.classList.add('hidden');
+      this.el.achToast.classList.remove('show');
+      this.el.omenToast.classList.remove('show');
       this.el.upgrade.classList.add('hidden');
       this.el.death.classList.add('hidden');
       this.el.victoryStamp.classList.add('hidden');
@@ -491,6 +698,7 @@
       this.el.dialogue.classList.add('hidden');
       this.el.cinematic.classList.add('hidden');
       this.el.hud.classList.remove('hidden');
+      this.el.hudName.textContent = this.playerName;
       if (U.isTouch()) this.el.touch.classList.remove('hidden');
       this.el.bossBar.classList.add('hidden');
       this.el.chapterCardNum.textContent = this.level.num;
@@ -551,6 +759,23 @@
 
       this.player.update(playerDt, this);
       if (this.state !== 'playing') return;
+      this.player.speedBuff = this.time < (this.catBuffUntil || 0) ? 1.15 : 1;
+      const idleNow = this.player.onGround && Math.abs(this.player.vx) < 18 && !['attack', 'skill', 'dodge', 'hurt', 'ultimate', 'heal'].includes(this.player.state);
+      this.idleTime = idleNow ? (this.idleTime || 0) + dt : 0;
+      if (this.idleTime > 20 && !this.thinkShown) {
+        this.thinkShown = true;
+        this.unlockAchievement('deep_think');
+        this.bark(this.playerName, '正在深度思考……（算力占用 100%）', null);
+        this.addText(this.player.x, this.player.y - 245, '……', '#bffaff', 25, { life: 1.4 });
+      }
+      if (this.input.justPressed('skill') && this.player.qi < 25) this.deepseekBusy('skill');
+      if (this.input.justPressed('ultimate') && this.player.focus < 100) this.deepseekBusy('ultimate');
+      if (this.secrets && this.secrets.length) {
+        for (const s of this.secrets) {
+          if (!s.collected && Math.abs(this.player.x - s.x) < 86) this.collectSecret(s);
+        }
+      }
+      this.updateInteractables();
 
       if (this.boss) {
         this.boss.update(worldDt, this);
@@ -591,6 +816,59 @@
       this.particles = this.particles.filter(p => !p.dead);
       for (const t of this.texts) t.update(dt);
       this.texts = this.texts.filter(t => !t.dead);
+    }
+
+    updateInteractables() {
+      if (!this.interactables || !this.player) { this.nearInteractable = null; return; }
+      let best = null, bestD = 142;
+      for (const it of this.interactables) {
+        if (it.used) continue;
+        const d = Math.abs(this.player.x - it.x);
+        if (d < bestD) { best = it; bestD = d; }
+      }
+      this.nearInteractable = best;
+      if (best && this.input.justPressed('interact')) this.interactWith(best);
+    }
+
+    deepseekBusy(kind) {
+      if (this.time - (this.busyToastAt || 0) < .55) return;
+      this.busyToastAt = this.time;
+      const lines = kind === 'ultimate'
+        ? ['深度思考尚未完成，请勿催促。', '心念不足 · 建议再砍两刀。', '服务器繁忙，请稍后再试。']
+        : ['气不足 · 正在排队请求算力。', '服务器繁忙，请稍后再试。', '这一招还在加载中……'];
+      this.showToast(U.choice(lines), 'red');
+      this.audio.sfx('warn');
+      this.achData.busy = (this.achData.busy || 0) + 1;
+      this.saveAchievements();
+      if (this.achData.busy >= 3) this.unlockAchievement('server_busy');
+    }
+
+    interactWith(it) {
+      if (!it || it.used) return;
+      it.used = true;
+      it.interactAt = this.time;
+      this.nearInteractable = null;
+      this.audio.sfx('life');
+      this.bark(it.name, it.text, it.voice || null);
+      if (it.achievement) this.unlockAchievement(it.achievement);
+      if (it.buff === 'cat') {
+        this.catBuffUntil = this.time + 20;
+        this.unlockAchievement('cat_buff');
+        this.showToast('喵力加持 · 移速 +15%（20 秒）', 'gold');
+        this.audio.speak('喵～', 'player');
+        this.addText(this.player.x, this.player.y - 220, '喵力加持', '#ffd98f', 24, { bold: true });
+      }
+      if (it.heal) {
+        this.player.hp = Math.min(this.player.maxHp, this.player.hp + it.heal);
+        this.addText(this.player.x, this.player.y - 210, '+' + it.heal, '#a8f7d8', 22);
+      }
+      this.spawnBurst(this.player.x, this.player.y - 90, '#aef7ff', 20, 180, { size: 2.4, life: .7, gravity: 0, additive: true });
+      if (!this.achData.interacted) this.achData.interacted = [];
+      if (!this.achData.interacted.includes(it.id)) {
+        this.achData.interacted.push(it.id);
+        this.saveAchievements();
+        if (this.achData.interacted.length >= 5) this.unlockAchievement('all_things');
+      }
     }
 
     updateCamera(dt) {
@@ -705,6 +983,7 @@
       this.bounds = { left: 0, right: this.level.width };
       this.cleared++;
       this.encounterIndex = this.cleared;
+      this.unlockAchievement('first_break');
       this.currentEncounter = null;
       this.encounterWaves = [];
       this.waveIndex = 0;
@@ -795,6 +1074,7 @@
     }
     onPlayerDealtDamage(target, damage, source, heavy) {
       this.combo++;
+      if (this.combo >= 50) this.unlockAchievement('combo50');
       this.comboTimer = 2.7;
       this.stats.maxCombo = Math.max(this.stats.maxCombo, this.combo);
       this.maxCombo = Math.max(this.maxCombo || 0, this.combo);
@@ -818,6 +1098,9 @@
     }
     onPerfectDodge(player, sourceX) {
       this.stats.perfect++;
+      this.achData.perfect = (this.achData.perfect || 0) + 1;
+      this.saveAchievements();
+      if (this.achData.perfect >= 3) this.unlockAchievement('mirror');
       this.slowTimer = .9;
       this.flashScreen('#8cefff', .16);
       this.addShake(5);
@@ -843,6 +1126,7 @@
     onPlayerDeath() {
       this.state = 'dying';
       this.deathTimer = 0;
+      this.unlockAchievement('cai');
       this.deaths++;
       this.slowTimer = 1.4;
       this.audio.stopMusic();
@@ -856,6 +1140,7 @@
       this.saveGame(false);
     }
     onBossDefeated() {
+      this.unlockAchievement('out');
       this.state = 'victory';
       this.victoryTimer = 0;
       this.victoryStampShown = false;
@@ -942,15 +1227,16 @@
       const line = this.dialogueQueue[this.dialogueIndex];
       if (!line) { this.finishDialogue(); return; }
       const who = line.who || 'narrator';
-      this.el.dialogueName.textContent = line.name || DIALOGUE_NAMES[who] || '旁白';
-      this.dialogueFull = line.text || '';
+      const speaker = line.name || (who === 'shen' ? this.playerName : DIALOGUE_NAMES[who]) || '旁白';
+      this.el.dialogueName.textContent = speaker;
+      this.dialogueFull = this.formatText(line.text || '');
       this.el.dialogueText.textContent = '';
       this.dialogueChars = 0;
       this.dialogueTyping = true;
       this.dialogueAdvanceRequested = false;
       Art.drawPortrait(this.el.dialoguePortrait, who === 'narrator' || who === 'echo' ? 'narrator' : who);
       if (line.voice && who !== 'narrator') {
-        this.audio.speak(line.text, who);
+        this.audio.speak(this.dialogueFull, who);
       }
     }
 
@@ -992,6 +1278,15 @@
       if (cb) cb();
     }
 
+    showOmen(name, sub) {
+      this.el.omenName.textContent = name;
+      this.el.omenSub.textContent = sub || '';
+      this.el.omenToast.classList.add('show');
+      this.audio.sfx('gong');
+      clearTimeout(this.omenTimer);
+      this.omenTimer = setTimeout(() => this.el.omenToast.classList.remove('show'), 5200);
+    }
+
     showToast(text, type) {
       if (!text) return;
       this.el.toast.textContent = text;
@@ -1002,13 +1297,15 @@
 
     bark(speaker, text, who) {
       const el = this.el.bark;
+      const shownSpeaker = (speaker === 'player' || speaker === '{name}') ? this.playerName : speaker;
+      const shownText = this.formatText(text);
       el.innerHTML = '';
-      const b = document.createElement('b'); b.textContent = speaker; el.appendChild(b);
-      const span = document.createElement('span'); span.textContent = text; el.appendChild(span);
+      const b = document.createElement('b'); b.textContent = shownSpeaker; el.appendChild(b);
+      const span = document.createElement('span'); span.textContent = shownText; el.appendChild(span);
       el.classList.add('show');
       clearTimeout(this.barkTimer);
       this.barkTimer = setTimeout(() => el.classList.remove('show'), 3600);
-      if (who) this.audio.speak(text, who);
+      if (who) this.audio.speak(shownText, who);
     }
 
     startTutorial() {
@@ -1083,6 +1380,7 @@
     }
 
     onUltimateStart() {
+      this.unlockAchievement('whale_song');
       this.ultFx = { t: 0, active: false, x: this.player.x, y: this.player.y - 100 };
       this.slowTimer = Math.max(this.slowTimer, .35);
       this.flashScreen('#bff8ff', .12);
@@ -1117,7 +1415,7 @@
         const a = Math.random() * TAU;
         this.spawnParticle(player.x + Math.cos(a) * U.rand(30, 220), player.y - U.rand(20, 260), Math.cos(a) * U.rand(60, 340), Math.sin(a) * U.rand(60, 220) - 80, U.rand(.5, 1.3), U.rand(2, 5), '#a5f5ff', 40, true);
       }
-      if (this.state === 'playing') this.bark('深寻', '这一剑，为所有被夺走的明天。', 'player');
+      if (this.state === 'playing') this.bark(this.playerName, '这一剑，为所有被夺走的明天。', 'player');
     }
 
     startEnding() {
@@ -1140,11 +1438,15 @@
       const scene = this.cinemaScenes[this.cinemaIndex];
       if (!scene) return;
       this.cinemaSceneT = 0;
+      const speaker = scene.speaker === 'player' ? this.playerName : scene.speaker === '旁白' ? '周娣' : (scene.speaker || '');
+      const text = this.formatText(scene.text || '');
       this.el.cinemaChapter.textContent = scene.chapter || (this.cinemaMode === 'ending' ? '尾声 · 雪停' : '');
-      this.el.cinemaSpeaker.textContent = scene.speaker || '';
-      this.el.cinemaText.textContent = scene.text || '';
+      this.el.cinemaSpeaker.textContent = speaker;
+      this.el.cinemaText.textContent = text;
+      const portraitWho = (speaker === this.playerName || scene.speaker === 'player') ? 'shen' : speaker === '刘奥' ? 'liuao' : speaker === '刘亚岚' ? 'alan' : 'narrator';
+      Art.drawPortrait(this.el.cinemaPortrait, portraitWho);
       this.el.cinemaHint.textContent = '点击 / 空格 继续';
-      if (scene.voice) this.audio.speak(scene.text, scene.voice);
+      if (scene.voice) this.audio.speak(text, scene.voice);
     }
 
     updateCinematic(dt) {
@@ -1202,6 +1504,7 @@
       this.modalReturn = this.state === 'paused' ? 'pause' : 'title';
       this.el.pause.classList.add('hidden');
       this.el.settings.classList.add('hidden');
+      this.el.achScreen.classList.add('hidden');
       this.el.help.classList.remove('hidden');
       this.audio.sfx('ui');
     }
@@ -1214,6 +1517,7 @@
       this.modalReturn = this.state === 'paused' ? 'pause' : 'title';
       this.el.pause.classList.add('hidden');
       this.el.help.classList.add('hidden');
+      this.el.achScreen.classList.add('hidden');
       this.el.settings.classList.remove('hidden');
       this.syncSettingsUI();
     }
@@ -1237,6 +1541,7 @@
       this.el.pause.classList.add('hidden');
       this.el.help.classList.add('hidden');
       this.el.settings.classList.add('hidden');
+      this.el.achScreen.classList.add('hidden');
       this.state = 'playing';
       this.input.reset();
       this.audio.resume();
@@ -1272,6 +1577,7 @@
 
       const p = this.player;
       if (p) {
+        this.el.hudName.textContent = this.playerName;
         const hpP = U.clamp(p.hp / p.maxHp, 0, 1);
         this.el.hpFill.style.width = (hpP * 100) + '%';
         this.el.hpText.textContent = `${Math.ceil(p.hp)} / ${p.maxHp}`;
@@ -1279,6 +1585,7 @@
         this.el.flaskCount.textContent = p.flasks;
         this.el.focusText.textContent = Math.floor(p.focus) + '%';
         this.el.focusBadge.classList.toggle('ready', p.focus >= 100);
+        if (this.el.buffBadge) this.el.buffBadge.hidden = !(this.time < (this.catBuffUntil || 0));
         this.el.hudChapter.textContent = this.level.num;
       }
       this.el.stageLabel.textContent = `${this.level.num} · ${this.level.name}`;
@@ -1309,6 +1616,10 @@
       } else if (!bt) {
         this.el.bossBar.classList.add('hidden');
       }
+      if (this.state === 'playing' && this.nearInteractable) {
+        this.el.interactName.textContent = '互动 · ' + this.nearInteractable.name;
+        this.el.interactPrompt.classList.add('show');
+      } else this.el.interactPrompt.classList.remove('show');
     }
 
     /* ================= 渲染 ================= */
@@ -1316,13 +1627,20 @@
       const ctx = this.ctx;
       const s = this.renderScale * this.dpr;
       ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.fillStyle = '#050a0e';
-      ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+      ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
       ctx.setTransform(s, 0, 0, s, this.offsetX * this.dpr, this.offsetY * this.dpr);
       ctx.imageSmoothingEnabled = true;
+      const has3D = !!(this.three && !this.three.failed);
+      const use3D = has3D && (this.state === 'title' || (!!this.level && this.player && !['intro', 'ending', 'endingScreen'].includes(this.state)));
+      if (has3D) this.three.setVisible(use3D);
 
       if (this.state === 'title') {
-        Art.drawTitleScene(ctx, this.time, this.settings.reducedMotion);
+        if (has3D) {
+          this.three.renderTitle(this.time, this.settings.reducedMotion);
+          this.drawScreenVignette(ctx);
+        } else {
+          Art.drawTitleScene(ctx, this.time, this.settings.reducedMotion);
+        }
       } else if (this.state === 'intro' || this.state === 'ending') {
         this.renderCinematic(ctx);
       } else if (this.state === 'endingScreen') {
@@ -1331,7 +1649,8 @@
       } else if (this.level && this.player) {
         this.renderWorld(ctx);
       } else {
-        Art.drawTitleScene(ctx, this.time, this.settings.reducedMotion);
+        if (has3D) { this.three.renderTitle(this.time, this.settings.reducedMotion); this.drawScreenVignette(ctx); }
+        else Art.drawTitleScene(ctx, this.time, this.settings.reducedMotion);
       }
       if (this.flash) {
         const a = U.clamp(this.flash.life / this.flash.max, 0, 1) * .38;
@@ -1354,6 +1673,10 @@
     renderWorld(ctx) {
       const shakeX = Math.sin(this.time * 137) * this.shakePower;
       const shakeY = Math.cos(this.time * 113) * this.shakePower * .6;
+      if (this.three && !this.three.failed) {
+        this.renderWorld3D(ctx, shakeX, shakeY);
+        return;
+      }
       const camX = this.camera.x;
       Art.drawBackground(ctx, this.level.theme, this.time, camX + shakeX * .25, true);
 
@@ -1398,6 +1721,117 @@
         ctx.fillStyle = 'rgba(98,226,246,.035)'; ctx.fillRect(0, 0, 1920, 1080);
       }
       this.drawChapterMarker(ctx);
+    }
+
+    renderWorld3D(ctx, shakeX, shakeY) {
+      ctx.clearRect(0, 0, 1920, 1080);
+      this.three.renderWorld(this, shakeX, shakeY);
+      this.draw3DOverlay(ctx, shakeX, shakeY);
+    }
+
+    draw3DOverlay(ctx, shakeX, shakeY) {
+      const project = (x, y) => this.three.project(x, y);
+      const time = this.time;
+      // 危险区预警
+      for (const h of this.hazards) {
+        const s = project(h.x, h.y - 8);
+        if (!s.visible) continue;
+        const active = h.timer > h.delay;
+        const prog = U.clamp(h.timer / h.delay, 0, 1);
+        ctx.save();
+        ctx.globalAlpha = active ? .3 : .16 + prog * .2;
+        ctx.strokeStyle = h.kind === 'fire' ? '#ff7858' : '#ffd09a';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash(active ? [] : [5, 7]);
+        ctx.beginPath(); ctx.ellipse(s.x, s.y + 3, Math.max(18, h.w * .62), Math.max(7, h.h * .32), 0, 0, TAU); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.globalAlpha = active ? .08 : .035;
+        ctx.fillStyle = h.kind === 'fire' ? '#ff5439' : '#ffb97a';
+        ctx.beginPath(); ctx.ellipse(s.x, s.y + 3, Math.max(18, h.w * .62), Math.max(7, h.h * .32), 0, 0, TAU); ctx.fill();
+        ctx.restore();
+      }
+      // 敌人预警 & 血条
+      for (const e of this.enemies) {
+        if (e.dead) continue;
+        const p = project(e.x, e.y - 3);
+        if (!p.visible) continue;
+        if (e.state === 'windup') {
+          const cfg = e.cfg || {};
+          const prog = U.clamp((e.stateT || 0) / (cfg.windup || .6), 0, 1);
+          ctx.save();
+          ctx.globalAlpha = .16 + prog * .32;
+          ctx.strokeStyle = '#ff705c'; ctx.lineWidth = 1.8;
+          ctx.beginPath(); ctx.ellipse(p.x, p.y + 5, (e.isElite ? 125 : 52) + prog * 20, 16 + prog * 5, 0, 0, TAU); ctx.stroke();
+          if (e.cfg && e.cfg.ranged) {
+            const pp = project(this.player.x, this.player.y - 100);
+            ctx.globalAlpha = .08 + prog * .2;
+            ctx.setLineDash([7, 9]);
+            ctx.beginPath(); ctx.moveTo(p.x, p.y - 60); ctx.lineTo(pp.x, pp.y); ctx.stroke();
+            ctx.setLineDash([]);
+          }
+          ctx.restore();
+        }
+        if (e.hp < e.maxHp && !e.isElite) {
+          const hp = U.clamp(e.hp / e.maxHp, 0, 1);
+          const w = 56, x = p.x - w / 2, y = p.y - (e.size ? e.size * 1.55 : 100);
+          ctx.fillStyle = 'rgba(2,8,10,.72)'; ctx.fillRect(x, y, w, 4);
+          ctx.fillStyle = hp > .4 ? '#69d9c8' : '#e06c5c'; ctx.fillRect(x, y, w * hp, 4);
+        }
+      }
+      // 心障 Boss 预警
+      if (this.boss && !this.boss.dead) {
+        const bp = project(this.boss.x, this.boss.y - 8);
+        if (bp.visible && (this.boss.state === 'windup' || this.boss.pattern)) {
+          const prog = this.boss.pattern ? U.clamp((this.boss.patternT || 0) / .8, 0, 1) : 1;
+          ctx.save();
+          ctx.globalAlpha = .12 + prog * .22;
+          ctx.strokeStyle = '#ff5b4b'; ctx.lineWidth = 2;
+          const size = this.boss.pattern === 'flameRain' ? 190 : 125;
+          ctx.beginPath(); ctx.ellipse(bp.x, bp.y + 8, size, 24, 0, 0, TAU); ctx.stroke();
+          const pp = project(this.player.x, this.player.y - 100);
+          ctx.globalAlpha = .08 + prog * .18;
+          ctx.setLineDash([8, 10]);
+          ctx.beginPath(); ctx.moveTo(bp.x, bp.y - 120); ctx.lineTo(pp.x, pp.y); ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.restore();
+        }
+      }
+      // 3D 粒子投影到屏幕
+      ctx.save();
+      for (const p of this.particles) {
+        const s = project(p.x, p.y);
+        if (!s.visible) continue;
+        const a = U.clamp(p.life / p.maxLife, 0, 1);
+        ctx.globalAlpha = a;
+        ctx.globalCompositeOperation = p.additive ? 'lighter' : 'source-over';
+        ctx.fillStyle = p.color;
+        ctx.beginPath(); ctx.arc(s.x, s.y, Math.max(1, p.size * .85), 0, TAU); ctx.fill();
+      }
+      ctx.restore();
+      // 伤害数字 / 提示
+      for (const t of this.texts) {
+        const s = project(t.x, t.y);
+        if (!s.visible) continue;
+        const a = U.clamp(t.life / t.maxLife * 1.7, 0, 1);
+        ctx.save(); ctx.globalAlpha = a;
+        ctx.font = `${t.bold ? '700 ' : ''}${t.size}px "STKaiti","KaiTi",serif`;
+        ctx.textAlign = 'center'; ctx.fillStyle = t.color;
+        ctx.shadowColor = 'rgba(0,0,0,.8)'; ctx.shadowBlur = 8;
+        ctx.fillText(t.text, s.x, s.y);
+        ctx.restore();
+      }
+      this.drawDirectionHint(ctx, this.camera.x);
+      this.renderUltimateFx(ctx);
+      if (this.player && this.player.hp / this.player.maxHp < .3 && !this.player.dead) {
+        const a = .12 + Math.sin(time * 4) * .05;
+        const g = ctx.createRadialGradient(960, 540, 320, 960, 540, 1080);
+        g.addColorStop(0, 'rgba(120,10,12,0)'); g.addColorStop(1, `rgba(120,10,12,${a})`);
+        ctx.fillStyle = g; ctx.fillRect(0, 0, 1920, 1080);
+      }
+      if (this.slowTimer > 0) {
+        ctx.fillStyle = 'rgba(98,226,246,.045)'; ctx.fillRect(0, 0, 1920, 1080);
+      }
+      this.drawScreenVignette(ctx);
     }
 
     drawScreenVignette(ctx) {
@@ -1511,8 +1945,14 @@
         ctx.fillText('鲸 落', 960, 340);
         ctx.restore();
       } else {
-        const px = this.player ? this.player.x - this.camera.x + 960 : 960;
-        const py = this.player ? this.player.y - 100 : 500;
+        let px = 960, py = 500;
+        if (this.player && this.three && !this.three.failed) {
+          const p = this.three.project(this.player.x, this.player.y - 100);
+          px = p.x; py = p.y;
+        } else if (this.player) {
+          px = this.player.x - this.camera.x + 960;
+          py = this.player.y - 100;
+        }
         ctx.save();
         ctx.globalCompositeOperation = 'lighter';
         const k = U.clamp(t / .82, 0, 1);

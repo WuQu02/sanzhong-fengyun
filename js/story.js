@@ -10,6 +10,21 @@
   const STORY = {
     intro: [
       {
+        art: 'classroom', chapter: '序 · 晚自习', speaker: '周娣',
+        text: '晚自习最后一节课，三中的走廊空得能听见雪。刘奥的座位空着，刘亚岚的桌上压着一封没写完的信。',
+        duration: 11, voice: 'narrator'
+      },
+      {
+        art: 'classroom', chapter: '序 · 未寄出的信', speaker: '周娣',
+        text: '信上只有一句：别为我做傻事。可那天夜里，刘奥还是走出了教室，走进了旧教学楼那间不再开放的机房。',
+        duration: 10, voice: 'narrator'
+      },
+      {
+        art: 'classroom', chapter: '序 · 无相之渊', speaker: '周娣',
+        text: '机房里，一台没有联网的旧服务器亮着。屏幕上只有一行字：无相之渊，可逆一命。',
+        duration: 9, voice: 'narrator'
+      },
+      {
         art: 'village', chapter: '序 · 雪落无声', speaker: '旁白',
         text: '云门旧地，雪落了三年。山下的炊烟断了，山上的钟声也停了。',
         duration: 8.5, voice: 'narrator'
@@ -31,16 +46,26 @@
       },
       {
         art: 'corruption', chapter: '雪劫 · 成魔', speaker: '旁白',
-        text: '雪被染成红色。刘奥成了守心人，也成了所有人眼里的魔。',
-        duration: 8.5, voice: 'narrator'
+        text: '雪被染成红色。刘奥成了守心人，也成了所有人眼里的魔。三中的操场、走廊和旧机房，被他的执念拼成了这座云门。',
+        duration: 10, voice: 'narrator'
       },
       {
-        art: 'deepsea', chapter: '灵息 · 深寻', speaker: '旁白',
-        text: '最后一缕求救的灵息穿过风雪，落入数据深海。深寻自梦中睁开了眼。',
+        art: 'deepsea', chapter: '任务 · 深寻', speaker: '周娣',
+        text: '行动代号「深寻」：进入刘奥的梦境，找到他，带他回来。这不是一个名字，是一条必须走完的路。',
         duration: 9, voice: 'narrator'
       },
       {
-        art: 'hero', chapter: '入梦 · 问心', speaker: '深寻',
+        art: 'deepsea', chapter: '任务 · 深寻', speaker: '旁白',
+        text: '最后一缕求救的灵息穿过风雪，落入数据深海。{name}自梦中睁开了眼。',
+        duration: 9, voice: 'narrator'
+      },
+      {
+        art: 'hero', chapter: '入梦 · 问心', speaker: '周娣',
+        text: '我是三中广播站的周娣。那晚的广播里，多了一个不属于三中的声音。',
+        duration: 7, voice: 'narrator'
+      },
+      {
+        art: 'hero', chapter: '入梦 · 问心', speaker: 'player',
         text: '以爱为名的罪，也得有人来问。刘奥，我来带你回去。',
         duration: 8, voice: 'player'
       }
@@ -55,14 +80,15 @@
         theme: 'snow',
         objective: '循着心念的裂痕，向山上走',
         startDialogue: [
-          S('云门的风，比数据海里冷多了。'),
+          S('这里明明是三中的后山。可校门，变成了山门。'),
+          N('行动代号「深寻」。目标：找到刘奥，终结逆命之术。'),
           N('雪地里没有人。只有被抽走心念后，留下的墨色脚印。'),
           S('先找到那些被困住的心。')
         ],
         clearLine: '心障已破 · 风雪让开了一条路',
         afterDialogue: [
           N('山道尽头，风雪忽然停了。一枚碎裂的心灯悬在半空，映出不属于这里的画面。'),
-          N('那是三年前的云门。刘奥守在床边，一遍遍替刘亚岚擦去额上的冷汗。'),
+          N('那是三年前的三中。刘奥守在病床边，一遍遍替刘亚岚擦去额上的冷汗。'),
           L('亚岚，再撑一日。就一日。', true),
           S('原来你从一开始就知道，自己在做错的事。'),
           S('可知道，和停下，是两回事。')
@@ -76,7 +102,7 @@
         theme: 'bamboo',
         objective: '穿过千竹岭，寻找焚心祠',
         startDialogue: [
-          S('雨落在竹叶上，像有人在低声数着日子。'),
+          S('旧教学楼的走廊，被雨泡成了竹海。'),
           A('刘奥……别再为我杀人了。'),
           S('亚岚的声音？他连自己的心，也一起困进了这座山里。')
         ],
@@ -95,8 +121,8 @@
         theme: 'temple',
         objective: '熄灭焚心祠的长明火',
         startDialogue: [
-          S('古祠的火烧了三年，却没有一丝暖意。'),
-          N('火中传来细弱的声音，像隔着一层很厚的水。'),
+          S('高三教室的黑板，为什么会立在祠堂里？'),
+          N('黑板上还留着半行粉笔字：距高考 100 天。'),
           A('你若再往前，他也会死。'),
           S('所以，才必须由我终结这一切。')
         ],
@@ -118,7 +144,7 @@
         theme: 'boss',
         objective: '终结逆命之术，带刘奥回去',
         startDialogue: [
-          N('天阙之上，刘奥背对风雪，怀里抱着一柄断剑。'),
+          N('天台之上，刘奥背对风雪，怀里抱着一柄断剑。这里和晚自习后的三中天台，一模一样。'),
           L('你身上没有一丝人气。来杀我的？'),
           S('我来带你去见他。'),
           L('见他？我烧了整座山，才让他还有一口气。你凭什么？'),
@@ -170,7 +196,7 @@
         duration: 7, voice: 'boss'
       },
       {
-        art: 'farewell', speaker: '深寻',
+        art: 'farewell', speaker: 'player',
         text: '活着。他让我转告你——他从未怪你，只是很想你。',
         duration: 8.5, voice: 'player'
       },
@@ -186,7 +212,7 @@
       },
       {
         art: 'dawn', speaker: '旁白',
-        text: '深寻将最后一口鲸息渡入山脚的屋子。逆命之术散了，刘亚岚心口那一线生机，却留了下来。',
+        text: '{name}将最后一口鲸息渡入山脚的屋子。逆命之术散了，刘亚岚心口那一线生机，却留了下来。',
         duration: 9, voice: 'narrator'
       },
       {
@@ -201,11 +227,21 @@
       },
       {
         art: 'sunrise', speaker: '旁白',
-        text: '深寻站在山门外。天光穿过云层，雪终于停了。',
+        text: '{name}站在山门外。天光穿过云层，雪终于停了。',
         duration: 8, voice: 'narrator'
       },
       {
-        art: 'sunrise', speaker: '深寻',
+        art: 'classroom', speaker: '周娣',
+        text: '三中的下课铃响了。刘奥的座位依然空着。刘亚岚把那封信折成一只纸鲸，放进窗台的雪里。',
+        duration: 11, voice: 'narrator'
+      },
+      {
+        art: 'classroom', speaker: '周娣',
+        text: '没有人知道那晚的梦有多长。只知道第二天的广播里，周娣念了一句：雪停了，回教室吧。',
+        duration: 10, voice: 'narrator'
+      },
+      {
+        art: 'sunrise', speaker: 'player',
         text: '爱若成牢，便不是归处。',
         duration: 7.5, voice: 'player'
       },
@@ -231,10 +267,64 @@
   const LOSE_LINES = [
     '呜……算力不足了。',
     '这一下，确实有点菜。',
-    '再来。深寻，再来一次。',
+    '再来。这一次，再来一次。',
     '记下了。下次不会了。'
   ];
 
   window.STORY = STORY;
   window.LOSE_LINES = LOSE_LINES;
+})();
+
+/* 成就与彩蛋 */
+(function () {
+  'use strict';
+  window.ACHIEVEMENTS = [
+    { id: 'awaken', seal: '梦', name: '入梦者', desc: '第一次写下名字，踏入这场风雪。' },
+    { id: 'first_break', seal: '破', name: '初破心障', desc: '第一次击破一场心障。' },
+    { id: 'whale_song', seal: '鲸', name: '鲸歌', desc: '释放一次「鲸落」。' },
+    { id: 'mirror', seal: '镜', name: '明镜止水', desc: '累计完成 3 次完美闪身。' },
+    { id: 'combo50', seal: '斩', name: '五十连斩', desc: '在一次连斩中达到 50 连击。' },
+    { id: 'out', seal: '终', name: '刘奥 OUT', desc: '在长夜尽头击败守心人。' },
+    { id: 'cai', seal: '菜', name: '菜就多练', desc: '第一次心灯熄灭，然后重新站起来。' },
+    { id: 'deepsea', seal: '海', name: '深海拾遗', desc: '找到散落在四章里的三枚鲸影彩蛋。' },
+    { id: 'whale_pet', seal: '摸', name: '小鲸贴贴', desc: '在战斗途中摸一摸浮游小鲸。' },
+    { id: 'same_name', seal: '名', name: '同名之人', desc: '以「刘奥」或「刘亚岚」之名入梦。' },
+    { id: 'all_things', seal: '灵', name: '万物有灵', desc: '与至少五种环境中的生灵或器物互动。' },
+    { id: 'mountain_guest', seal: '客', name: '山中有客', desc: '在竹海遇见斗笠客谢无咎。' },
+    { id: 'cat_buff', seal: '猫', name: '猫奴', desc: '接受狸花猫或灰猫的喵力加持。' },
+    { id: 'deep_think', seal: '想', name: '深度思考', desc: '在风雪中静止 20 秒，等一个答案。' },
+    { id: 'server_busy', seal: '忙', name: '服务器繁忙', desc: '连续三次在气或心念不足时试图出招。' }
+  ];
+  window.SECRET_LORE = {
+    snow: { id: 'snow_whale', x: 128, y: 760, text: '雪地里埋着一只小鲸鱼的尾巴。它似乎并不怕冷。' },
+    bamboo: { id: 'bamboo_whale', x: 128, y: 760, text: '竹叶上停着一枚蓝色鳞片，映出一片很远的海。' },
+    temple: { id: 'temple_whale', x: 128, y: 760, text: '灰烬里传来一声很轻的鲸歌。像有人在海的另一边回答。' }
+  };
+})();
+
+/* 环境中的可交互生灵与器物 */
+(function () {
+  'use strict';
+  window.INTERACTABLES = {
+    snow: [
+      { id: 'rabbit_snow', kind: 'rabbit', name: '雪兔', x: 438, y: 850, z: 2.2, text: '雪兔抖了抖耳朵，把脑袋蹭进你的掌心。', heal: 6 },
+      { id: 'cat_snow', kind: 'cat', name: '狸花猫', x: 1880, y: 850, z: -2.3, buff: 'cat', text: '猫打了个呵欠，尾巴卷住了你的手腕。它决定把今天的喵力借给你。' },
+      { id: 'lantern_snow', kind: 'lantern', name: '长明灯', x: 3330, y: 850, z: -2.4, text: '灯芯自己亮了。雪里多了一小圈暖色。', heal: 12 },
+      { id: 'schoolbell_snow', kind: 'schoolbell', name: '三中·老铃', x: 720, y: 850, z: 2.2, text: '你摇了摇三中的老铃。铃声一响，整座雪山都安静了，像晚自习突然停电。' }
+    ],
+    bamboo: [
+      { id: 'koi_bamboo', kind: 'koi', name: '锦鲤', x: 470, y: 850, z: 2.2, text: '锦鲤跃出水面，带起一串被打碎的月光。', heal: 8 },
+      { id: 'sign_bamboo', kind: 'sign', name: '兰蕙园', x: 325, y: 850, z: 2.4, text: '兰蕙园的竹子在夜里也会背书。风一吹，它们就齐声念：求真、扬善、尚美。' },
+      { id: 'chime_bamboo', kind: 'chime', name: '竹风铃', x: 2150, y: 850, z: -2.1, text: '风铃响了三声。雨忽然变得很轻。' },
+      { id: 'swordsman_bamboo', kind: 'swordsman', name: '谢无咎', x: 560, y: 850, z: -2.8, voice: 'boss', achievement: 'mountain_guest', text: '斗笠客没有回头：山上的人，已经听不见雪落的声音了。你若要去，就别带怜悯。' },
+      { id: 'crane_bamboo', kind: 'crane', name: '纸鹤', x: 4080, y: 850, z: 2.0, text: '纸鹤展开翅膀，绕着你飞了半圈，落在更远的竹枝上。' }
+    ],
+    temple: [
+      { id: 'incense_temple', kind: 'incense', name: '香炉', x: 470, y: 850, z: -2.2, text: '香灰里浮起一个很旧的名字。你没有看清，但心口暖了一下。', heal: 24 },
+      { id: 'bell_temple', kind: 'bell', name: '古钟', x: 2380, y: 850, z: -2.3, text: '钟声穿过火海。远处的什么东西，安静了下来。' },
+      { id: 'cat_temple', kind: 'cat', name: '灰猫', x: 4460, y: 850, z: 2.1, buff: 'cat', text: '灰猫蹲在烧焦的门槛上，用尾巴扫了扫你的鞋尖。喵力正在传输。' },
+      { id: 'sign_temple', kind: 'sign', name: '告示牌', x: 640, y: 850, z: 2.2, text: '告示：祠内严禁烧烤、渡劫、谈恋爱；违者罚抄《心经》三遍。' }
+    ],
+    climax: []
+  };
 })();

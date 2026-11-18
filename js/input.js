@@ -12,6 +12,7 @@
     KeyK: 'skill', KeyX: 'skill',
     KeyL: 'dodge', ShiftLeft: 'dodge', ShiftRight: 'dodge', KeyC: 'dodge',
     KeyE: 'heal',
+    KeyF: 'interact',
     KeyU: 'ultimate', KeyV: 'ultimate',
     Escape: 'pause', KeyP: 'pause',
     Enter: 'confirm', NumpadEnter: 'confirm'

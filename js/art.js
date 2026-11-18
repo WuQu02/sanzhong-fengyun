@@ -1544,23 +1544,105 @@
       // 纸/魂
       ctx.globalAlpha = .15; ctx.fillStyle = '#fff';
       for (let i = 0; i < 10; i++) { ctx.beginPath(); ctx.arc((U.hash(i) - .5) * 150, (U.hash(i + 2) - .5) * 160, 1.4, 0, TAU); ctx.fill(); }
-    } else if (who === 'narrator' || who === 'echo') {
+    } else if (who === 'narrator') {
+      // 说书人 · 周娣
+      const robe = ctx.createLinearGradient(-70, -30, 70, 20);
+      robe.addColorStop(0, '#203b43'); robe.addColorStop(.55, '#315961'); robe.addColorStop(1, '#14282f');
+      ctx.fillStyle = robe;
+      ctx.beginPath(); ctx.moveTo(-72, 12); ctx.quadraticCurveTo(-60, -63, -24, -82);
+      ctx.quadraticCurveTo(5, -99, 35, -80); ctx.quadraticCurveTo(68, -57, 75, 12); ctx.closePath(); ctx.fill();
+      // 长发
+      const hg = ctx.createLinearGradient(-50, -170, 50, 10);
+      hg.addColorStop(0, '#111a23'); hg.addColorStop(.55, '#223844'); hg.addColorStop(1, '#0a1218');
+      ctx.fillStyle = hg;
+      ctx.beginPath(); ctx.ellipse(4, -112, 50, 55, 0, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(-47, -124); ctx.quadraticCurveTo(-75, -45, -58, 12); ctx.lineTo(-27, 3); ctx.quadraticCurveTo(-45, -60, -27, -131); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(45, -127); ctx.quadraticCurveTo(72, -50, 56, 12); ctx.lineTo(22, 2); ctx.quadraticCurveTo(42, -60, 25, -133); ctx.closePath(); ctx.fill();
+      // 脸
+      const fg = ctx.createRadialGradient(16, -127, 5, 3, -117, 46);
+      fg.addColorStop(0, '#f7e5d3'); fg.addColorStop(.65, '#ead3c1'); fg.addColorStop(1, '#cba994');
+      ctx.fillStyle = fg;
+      ctx.beginPath(); ctx.moveTo(-33, -130); ctx.quadraticCurveTo(-31, -91, -7, -77);
+      ctx.quadraticCurveTo(27, -65, 37, -102); ctx.quadraticCurveTo(44, -138, 8, -160);
+      ctx.quadraticCurveTo(-22, -159, -33, -130); ctx.closePath(); ctx.fill();
+      // 侧发
+      ctx.fillStyle = hg;
+      ctx.beginPath(); ctx.moveTo(-37, -145); ctx.quadraticCurveTo(-53, -105, -38, -68); ctx.quadraticCurveTo(-29, -105, -24, -147); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(38, -143); ctx.quadraticCurveTo(48, -102, 32, -72); ctx.quadraticCurveTo(28, -108, 28, -146); ctx.closePath(); ctx.fill();
+      // 眉眼
+      ctx.strokeStyle = '#1b2730'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(-24, -137); ctx.quadraticCurveTo(-16, -141, -7, -137); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(9, -137); ctx.quadraticCurveTo(18, -141, 25, -137); ctx.stroke();
+      for (const ex of [-14, 18]) {
+        ctx.fillStyle = '#fbf0e2'; ctx.beginPath(); ctx.ellipse(ex, -124, 10, 6, 0, 0, TAU); ctx.fill();
+        ctx.strokeStyle = '#142630'; ctx.lineWidth = 1.1; ctx.beginPath(); ctx.ellipse(ex, -124, 10, 6, 0, 0, TAU); ctx.stroke();
+        ctx.fillStyle = '#21333b'; ctx.beginPath(); ctx.ellipse(ex, -124, 4.3, 5.2, 0, 0, TAU); ctx.fill();
+        ctx.fillStyle = '#071217'; ctx.beginPath(); ctx.ellipse(ex, -124, 2.1, 4, 0, 0, TAU); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,.95)'; ctx.beginPath(); ctx.arc(ex - 1.6, -126, 1.3, 0, TAU); ctx.fill();
+      }
+      // 红唇 / 朱砂
+      ctx.fillStyle = 'rgba(158,66,62,.8)'; ctx.beginPath(); ctx.ellipse(2, -91, 5.3, 2.2, 0, 0, TAU); ctx.fill();
+      ctx.fillStyle = 'rgba(165,45,40,.7)'; ctx.beginPath(); ctx.arc(2, -154, 2.2, 0, TAU); ctx.fill();
+      // 领口 / 金线
+      ctx.strokeStyle = 'rgba(220,190,130,.5)'; ctx.lineWidth = 1.4;
+      ctx.beginPath(); ctx.moveTo(-29, -72); ctx.quadraticCurveTo(2, -53, 32, -73); ctx.stroke();
+      ctx.fillStyle = '#182c32'; ctx.beginPath(); ctx.moveTo(-13, -75); ctx.lineTo(5, -48); ctx.lineTo(23, -75); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = 'rgba(110,229,255,.28)'; ctx.beginPath(); ctx.moveTo(-24, -63); ctx.lineTo(1, -43); ctx.lineTo(29, -65); ctx.stroke();
+      // 折扇
+      ctx.save(); ctx.translate(44, -22); ctx.rotate(.28);
+      ctx.fillStyle = 'rgba(226,216,190,.9)';
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, 38, -2.2, -.35); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = 'rgba(76,55,44,.65)'; ctx.lineWidth = 1;
+      for (let i = 0; i < 6; i++) { const a = -2.1 + i * .33; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(a) * 36, Math.sin(a) * 36); ctx.stroke(); }
+      ctx.strokeStyle = 'rgba(32,55,61,.7)'; ctx.beginPath(); ctx.arc(0, 0, 37, -2.15, -.4); ctx.stroke();
+      ctx.fillStyle = '#5b2b2a'; ctx.beginPath(); ctx.arc(0, 0, 3, 0, TAU); ctx.fill();
+      ctx.restore();
+      // 发簪
+      ctx.strokeStyle = '#c6a266'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(-39, -150); ctx.lineTo(-62, -137); ctx.stroke();
+      ctx.fillStyle = '#8eefff'; ctx.beginPath(); ctx.arc(-63, -136, 4, 0, TAU); ctx.fill();
+    } else if (who === 'echo') {
       ctx.restore();
       ctx.save(); ctx.translate(w / 2, h / 2);
       ctx.strokeStyle = 'rgba(126,208,220,.32)'; ctx.lineWidth = 2;
       for (let i = 0; i < 4; i++) { ctx.beginPath(); ctx.arc(0, 0, 26 + i * 12, -.4 + i, 2.2 + i); ctx.stroke(); }
       ctx.fillStyle = 'rgba(126,208,220,.4)'; ctx.beginPath(); ctx.arc(0, 0, 5, 0, TAU); ctx.fill();
     } else {
-      // 深寻头肩
+      // 主角头肩
       ctx.fillStyle = '#f1d6c5'; ctx.beginPath(); ctx.ellipse(3, -108, 47, 50, 0, 0, TAU); ctx.fill();
       ctx.fillStyle = '#205582';
       ctx.beginPath(); ctx.arc(3, -117, 55, Math.PI * .85, Math.PI * 2.15); ctx.quadraticCurveTo(61, -80, 40, -57); ctx.quadraticCurveTo(8, -78, -44, -62); ctx.quadraticCurveTo(-60, -92, -51, -116); ctx.closePath(); ctx.fill();
       ctx.fillStyle = '#eaf2ed';
       ctx.beginPath(); ctx.moveTo(-57, 12); ctx.lineTo(-42, -63); ctx.quadraticCurveTo(2, -94, 49, -62); ctx.lineTo(63, 12); ctx.closePath(); ctx.fill();
       ctx.fillStyle = '#193d5a'; ctx.beginPath(); ctx.moveTo(-43, -58); ctx.quadraticCurveTo(4, -83, 50, -58); ctx.lineTo(39, -39); ctx.quadraticCurveTo(0, -55, -35, -39); ctx.closePath(); ctx.fill();
+      // 白色女仆围裙
+      ctx.fillStyle = '#f8f5eb';
+      ctx.beginPath(); ctx.moveTo(-22, -59); ctx.quadraticCurveTo(2, -82, 27, -59); ctx.lineTo(38, 12); ctx.lineTo(-38, 12); ctx.closePath(); ctx.fill();
+      for (let i = 0; i < 7; i++) { ctx.beginPath(); ctx.arc(-30 + i * 10, 9, 4.4, 0, TAU); ctx.fill(); }
+      ctx.fillStyle = '#2f5cbb'; ctx.beginPath(); ctx.ellipse(1, -59, 14, 7, 0, 0, TAU); ctx.fill();
+      ctx.fillStyle = '#8df4ff'; ctx.beginPath(); ctx.ellipse(1, -61, 5.5, 3, 0, 0, TAU); ctx.fill();
       // 刘海
       ctx.fillStyle = '#205582';
       ctx.beginPath(); ctx.moveTo(-48, -123); ctx.quadraticCurveTo(-25, -175, 18, -164); ctx.quadraticCurveTo(55, -155, 48, -104); ctx.lineTo(34, -136); ctx.lineTo(23, -107); ctx.lineTo(10, -140); ctx.lineTo(-2, -108); ctx.lineTo(-16, -142); ctx.lineTo(-29, -111); ctx.closePath(); ctx.fill();
+      // 鲸鳍耳
+      for (const side of [-1, 1]) {
+        ctx.save(); ctx.translate(side * 48, -121); ctx.scale(side, 1);
+        const fg = ctx.createLinearGradient(0, -42, 40, 18);
+        fg.addColorStop(0, '#76efff'); fg.addColorStop(.5, '#3c86e5'); fg.addColorStop(1, '#203d95');
+        ctx.fillStyle = fg;
+        ctx.beginPath(); ctx.moveTo(0, 0); ctx.quadraticCurveTo(27, -34, 49, -23); ctx.quadraticCurveTo(39, -3, 31, 19); ctx.quadraticCurveTo(14, 13, 0, 0); ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = 'rgba(198,252,255,.62)'; ctx.lineWidth = 1.25;
+        for (let k = 0; k < 3; k++) { ctx.beginPath(); ctx.moveTo(8 + k * 6, -4); ctx.lineTo(24 + k * 5, -18 + k * 3); ctx.stroke(); }
+        ctx.restore();
+      }
+      // 白色女仆发带
+      ctx.fillStyle = '#f6f2e8';
+      ctx.beginPath(); ctx.moveTo(-44, -145); ctx.quadraticCurveTo(0, -174, 45, -145); ctx.lineTo(37, -133); ctx.quadraticCurveTo(0, -157, -36, -133); ctx.closePath(); ctx.fill();
+      for (let i = 0; i < 8; i++) {
+        const a = -1.4 + i * .4;
+        ctx.beginPath(); ctx.arc(Math.sin(a) * 40, -146 - Math.cos(a) * 19, 3.1, 0, TAU); ctx.fill();
+      }
+      ctx.fillStyle = '#315bc0'; ctx.beginPath(); ctx.ellipse(-35, -154, 8, 4, -.4, 0, TAU); ctx.fill();
       // 眼
       for (const [ex, ey, sz] of [[-13, -109, 8], [17, -108, 8.4]]) {
         ctx.fillStyle = '#10263b'; ctx.beginPath(); ctx.ellipse(ex, ey, sz, sz * 1.2, 0, 0, TAU); ctx.fill();
@@ -1568,12 +1650,18 @@
         ctx.fillStyle = eg; ctx.beginPath(); ctx.ellipse(ex, ey + 1, sz * .58, sz * .84, 0, 0, TAU); ctx.fill();
         ctx.fillStyle = '#061620'; ctx.beginPath(); ctx.ellipse(ex, ey + 1, sz * .24, sz * .55, 0, 0, TAU); ctx.fill();
         ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(ex - sz * .24, ey - sz * .3, sz * .2, 0, TAU); ctx.fill();
+        // 半睑
+        ctx.fillStyle = '#f1d6c5'; ctx.beginPath(); ctx.ellipse(ex, ey - sz * .82, sz * 1.05, sz * .4, 0, 0, TAU); ctx.fill();
+        ctx.strokeStyle = '#19345a'; ctx.lineWidth = 1.05;
+        ctx.beginPath(); ctx.moveTo(ex - sz * .9, ey - sz * .72); ctx.quadraticCurveTo(ex, ey - sz * .5, ex + sz * .9, ey - sz * .72); ctx.stroke();
       }
       ctx.strokeStyle = 'rgba(32,61,86,.55)'; ctx.lineWidth = 1.3;
       ctx.beginPath(); ctx.moveTo(-20, -124); ctx.quadraticCurveTo(-13, -127, -6, -124); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(10, -123); ctx.quadraticCurveTo(17, -126, 23, -123); ctx.stroke();
-      ctx.strokeStyle = 'rgba(161,85,82,.62)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(1, -87); ctx.quadraticCurveTo(6, -83, 12, -87); ctx.stroke();
-      ctx.fillStyle = 'rgba(231,119,124,.14)'; ctx.beginPath(); ctx.ellipse(26, -95, 8, 3.5, 0, 0, TAU); ctx.fill(); ctx.beginPath(); ctx.ellipse(-19, -95, 7, 3, 0, 0, TAU); ctx.fill();
+      ctx.fillStyle = '#833a47'; ctx.beginPath(); ctx.ellipse(7, -86, 4.2, 4.8, .04, 0, TAU); ctx.fill();
+      ctx.fillStyle = '#e4828b'; ctx.beginPath(); ctx.ellipse(7, -84, 2.2, 2, 0, 0, TAU); ctx.fill();
+      ctx.fillStyle = '#fffdf3'; ctx.beginPath(); ctx.moveTo(9, -90); ctx.lineTo(12, -85); ctx.lineTo(8, -85); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = 'rgba(238,124,134,.38)'; ctx.beginPath(); ctx.ellipse(31, -97, 9, 4, -.1, 0, TAU); ctx.fill(); ctx.beginPath(); ctx.ellipse(-19, -97, 8, 3.5, .1, 0, TAU); ctx.fill();
       // 鲸发卡
       ctx.save(); ctx.translate(-37, -148); ctx.rotate(-.3);
       ctx.fillStyle = '#84f2ff'; ctx.beginPath(); ctx.ellipse(0, 0, 9, 5, 0, 0, TAU); ctx.fill();
@@ -1629,7 +1717,68 @@
     const fade = Math.min(1, t / .9, Math.max(0, (total - t) / .9));
     ctx.save();
     ctx.globalAlpha = .25 + fade * .75;
-    if (id === 'village') {
+    if (id === 'classroom') {
+      // 邵东三中 · 晚自习
+      const bg = ctx.createLinearGradient(0, 0, 0, 1080);
+      bg.addColorStop(0, '#151b20'); bg.addColorStop(.55, '#29333a'); bg.addColorStop(1, '#0d1216');
+      ctx.fillStyle = bg; ctx.fillRect(0, 0, 1920, 1080);
+      // 窗外的雪
+      const win = ctx.createLinearGradient(100, 180, 640, 620);
+      win.addColorStop(0, '#7d9eb5'); win.addColorStop(.55, '#476779'); win.addColorStop(1, '#1c303b');
+      ctx.fillStyle = win; ctx.fillRect(110, 160, 540, 480);
+      ctx.fillStyle = '#d7e9e9';
+      for (let i = 0; i < 80; i++) {
+        const x = 110 + U.hash(i * 4.1) * 540, y = 160 + ((U.hash(i * 7.7) * 480 + t * 18) % 480);
+        ctx.globalAlpha = .18 + U.hash(i) * .4; ctx.beginPath(); ctx.arc(x, y, .8 + U.hash(i + 2) * 2, 0, TAU); ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+      // 窗框
+      ctx.strokeStyle = '#0b1114'; ctx.lineWidth = 14;
+      ctx.strokeRect(110, 160, 540, 480);
+      ctx.beginPath(); ctx.moveTo(380, 160); ctx.lineTo(380, 640); ctx.moveTo(110, 400); ctx.lineTo(650, 400); ctx.stroke();
+      // 黑板
+      ctx.fillStyle = '#2b3e37'; ctx.fillRect(790, 210, 850, 380);
+      ctx.strokeStyle = '#806447'; ctx.lineWidth = 16; ctx.strokeRect(790, 210, 850, 380);
+      ctx.strokeStyle = 'rgba(213,220,195,.55)'; ctx.lineWidth = 2;
+      for (let i = 0; i < 4; i++) { ctx.beginPath(); ctx.moveTo(850 + i * 30, 295); ctx.lineTo(1100 + i * 30, 295); ctx.stroke(); }
+      ctx.font = '700 54px "STKaiti","KaiTi",serif'; ctx.fillStyle = 'rgba(235,233,206,.75)'; ctx.fillText('距高考  100  天', 1000, 285);
+      ctx.font = '34px "STKaiti","KaiTi",serif'; ctx.fillStyle = 'rgba(238,229,203,.48)'; ctx.fillText('逸夫楼 · 高三（?）班', 1120, 350); ctx.font = '24px "STKaiti","KaiTi",serif'; ctx.fillStyle = 'rgba(238,229,203,.32)'; ctx.fillText('求真 · 扬善 · 尚美    苦干 · 苦教 · 苦学', 1160, 380);
+      ctx.font = '38px "STKaiti","KaiTi",serif'; ctx.fillStyle = 'rgba(240,219,199,.62)'; ctx.fillText('别为我做傻事。', 1210, 430);
+      ctx.strokeStyle = 'rgba(238,229,203,.22)'; ctx.lineWidth = 1;
+      for (let i = 0; i < 6; i++) { ctx.beginPath(); ctx.moveTo(850, 480 + i * 18); ctx.lineTo(1300 - i * 40, 480 + i * 18); ctx.stroke(); }
+      // 时钟
+      ctx.fillStyle = '#d6d2c5'; ctx.beginPath(); ctx.arc(1750, 300, 54, 0, TAU); ctx.fill();
+      ctx.strokeStyle = '#1b252a'; ctx.lineWidth = 5; ctx.beginPath(); ctx.arc(1750, 300, 54, 0, TAU); ctx.stroke();
+      ctx.strokeStyle = '#28353a'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(1750, 300); ctx.lineTo(1750, 266); ctx.moveTo(1750, 300); ctx.lineTo(1776, 312); ctx.stroke();
+      // 课桌
+      for (let row = 0; row < 3; row++) {
+        const y = 710 + row * 105, scale = 1 + row * .18;
+        for (let col = 0; col < 5; col++) {
+          const x = 160 + col * 330 + row * 35;
+          ctx.save(); ctx.translate(x, y); ctx.scale(scale, scale);
+          ctx.fillStyle = '#3d3228'; ctx.fillRect(-85, -10, 170, 16);
+          ctx.fillStyle = '#241d18'; ctx.fillRect(-68, 6, 12, 110); ctx.fillRect(56, 6, 12, 110);
+          ctx.strokeStyle = 'rgba(183,172,145,.25)'; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.moveTo(-80, -26); ctx.lineTo(80, -26); ctx.stroke();
+          ctx.restore();
+        }
+      }
+      // 前景的桌与信
+      ctx.fillStyle = 'rgba(10,14,16,.55)'; ctx.beginPath(); ctx.moveTo(0, 1080); ctx.lineTo(0, 860); ctx.lineTo(650, 820); ctx.lineTo(760, 1080); ctx.closePath(); ctx.fill();
+      ctx.save(); ctx.translate(400, 885); ctx.rotate(-.08);
+      ctx.fillStyle = '#e8dfc5'; ctx.fillRect(-70, -40, 140, 80);
+      ctx.strokeStyle = 'rgba(147,118,83,.55)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(-45, -16); ctx.lineTo(45, -16); ctx.moveTo(-45, 2); ctx.lineTo(25, 2); ctx.stroke();
+      ctx.fillStyle = 'rgba(140,53,48,.55)'; ctx.beginPath(); ctx.arc(52, 25, 9, 0, TAU); ctx.fill();
+      ctx.restore();
+      // 走廊回声的暖光
+      const glowGrad = ctx.createRadialGradient(900, 560, 30, 900, 560, 640);
+      glowGrad.addColorStop(0, 'rgba(255,200,135,.08)'); glowGrad.addColorStop(1, 'rgba(255,200,135,0)');
+      ctx.fillStyle = glowGrad; ctx.fillRect(0, 0, 1920, 1080);
+      const vig = ctx.createRadialGradient(960, 540, 300, 960, 540, 1120);
+      vig.addColorStop(0, 'rgba(0,0,0,0)'); vig.addColorStop(1, 'rgba(0,0,0,.56)'); ctx.fillStyle = vig; ctx.fillRect(0, 0, 1920, 1080);
+    } else if (id === 'village') {
       cinematicBase(ctx, 'snow', t);
       // 村庄
       const base = 840;
@@ -1789,7 +1938,7 @@
       ctx.fillStyle = '#071117';
       ctx.fillRect(400, 410, 80, 450); ctx.fillRect(1450, 410, 80, 450);
       ctx.fillRect(330, 380, 220, 35); ctx.fillRect(1370, 380, 220, 35);
-      // 深寻背影
+      // 主角背影
       ctx.save(); ctx.translate(960, 890); ctx.scale(1.5, 1.5);
       // 发
       ctx.fillStyle = '#183e60';
@@ -1821,7 +1970,7 @@
       // 雪坡
       ctx.fillStyle = 'rgba(226,234,231,.33)';
       ctx.beginPath(); ctx.moveTo(0, 900); ctx.quadraticCurveTo(720, 805, 1920, 900); ctx.lineTo(1920, 1080); ctx.lineTo(0, 1080); ctx.closePath(); ctx.fill();
-      // 深寻站在远处
+      // 主角站在远处
       ctx.save(); ctx.translate(590, 902); ctx.scale(1.35, 1.35);
       ctx.fillStyle = '#163b56';
       ctx.beginPath(); ctx.arc(0, -156, 42, Math.PI, 0); ctx.fill();
@@ -1981,7 +2130,7 @@
       ctx.fillStyle = 'rgba(18,22,23,.85)';
       ctx.fillRect(360, 410, 42, 440); ctx.fillRect(1520, 410, 42, 440);
       ctx.fillRect(310, 388, 180, 22); ctx.fillRect(1430, 388, 182, 22);
-      // 深寻背影
+      // 主角背影
       ctx.save(); ctx.translate(690, 865); ctx.scale(1.35, 1.35);
       ctx.fillStyle = '#1b3f58'; ctx.beginPath(); ctx.arc(0, -148, 45, Math.PI, 0); ctx.fill();
       ctx.beginPath(); ctx.moveTo(-42, -152); ctx.quadraticCurveTo(-64, -60, -43, -6); ctx.lineTo(-18, -15); ctx.quadraticCurveTo(-27, -82, -19, -148); ctx.closePath(); ctx.fill();
@@ -2023,7 +2172,7 @@
     ctx.beginPath(); ctx.moveTo(-44, -244); ctx.quadraticCurveTo(-85, -140, -62, -10); ctx.lineTo(-12, -30); ctx.lineTo(0, -130); ctx.lineTo(14, -30); ctx.lineTo(66, -12); ctx.quadraticCurveTo(87, -150, 45, -244); ctx.closePath(); ctx.fill();
     ctx.strokeStyle = '#07090d'; ctx.lineWidth = 9; ctx.beginPath(); ctx.moveTo(42, -180); ctx.lineTo(128, -60); ctx.stroke();
     ctx.restore();
-    // 深寻背影/侧身
+    // 主角背影/侧身
     const fake = {
       x: 1135, y: 852, vx: 0, onGround: true, state: 'idle', stateT: 0,
       facing: 1, attackIndex: 0, animTime: 0, focus: 0, hurtFlash: 0
