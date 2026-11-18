@@ -162,10 +162,36 @@
       this.hazardModels = new Map();
       this.lastDt = .016;
       this.lastTime = performance.now() / 1000;
+      this.orbit = { yaw: 0, pitch: 0, dragging: false, lastX: 0, lastY: 0 };
+      this._bindOrbit();
       this.ensureMaterials();
       this.setupLights();
       this.resize();
       this.setVisible(false);
+    }
+
+    _bindOrbit() {
+      window.addEventListener('contextmenu', (e) => {
+        if (this.game && this.game.state === 'playing' && this.visible) e.preventDefault();
+      });
+      window.addEventListener('pointerdown', (e) => {
+        if (e.button !== 2 || !this.game || this.game.state !== 'playing' || !this.visible) return;
+        if (e.target && e.target.closest && e.target.closest('button,input,.screen,.dialogue')) return;
+        this.orbit.dragging = true;
+        this.orbit.lastX = e.clientX;
+        this.orbit.lastY = e.clientY;
+      });
+      window.addEventListener('pointermove', (e) => {
+        if (!this.orbit.dragging) return;
+        const dx = e.clientX - this.orbit.lastX;
+        const dy = e.clientY - this.orbit.lastY;
+        this.orbit.lastX = e.clientX; this.orbit.lastY = e.clientY;
+        this.orbit.yaw -= dx * .006;
+        this.orbit.pitch = U.clamp(this.orbit.pitch + dy * .004, -.35, 1.2);
+      });
+      const end = () => { this.orbit.dragging = false; };
+      window.addEventListener('pointerup', end);
+      window.addEventListener('pointercancel', end);
     }
 
     ensureMaterials() {
@@ -1291,14 +1317,18 @@
       if (this.failed) return;
       const now = performance.now() / 1000;
       const dt = Math.min(.05, Math.max(.001, now - this.lastTime));
-      this.lastTime = now;
+      this.lastTime = now; this.lastDelta = dt;
       const level = game.level;
       if (!level) { this.setVisible(false); return; }
       this.setVisible(true);
       this.buildStage(level.theme, level.width, {});
       const camX = (game.camera.x || 960) / PX;
-      this.camera.position.set(camX + .35 + (shakeX || 0) / 120, 4.45 + (shakeY || 0) / 110, 12.2);
-      this.camera.lookAt(camX + .2, 1.95, 0);
+      const camZ = (game.camera.z !== undefined ? game.camera.z : (game.player ? game.player.z : 0)) / PX;
+      const dist = 12.2;
+      const yaw = this.orbit ? this.orbit.yaw : 0;
+      const pitch = this.orbit ? this.orbit.pitch : 0;
+      this.camera.position.set(camX + Math.sin(yaw) * dist + (shakeX || 0) / 120, Math.max(1.35, 4.45 + pitch + (shakeY || 0) / 110), camZ + Math.cos(yaw) * dist);
+      this.camera.lookAt(camX, 1.95, camZ);
       this.currentCamX = camX;
       this._updateSky(dt, camX);
       this._updateWeather(dt, camX);
@@ -1313,12 +1343,30 @@
       this.renderer.render(this.scene, this.camera);
     }
 
+    _closestTarget(p, game) {
+      let best = null, bd = 700;
+      if (game.boss && !game.boss.dead) { const d = Math.hypot(game.boss.x - p.x, (game.boss.z || 0) - p.z); if (d < bd) { bd = d; best = game.boss; } }
+      for (const e of game.enemies) { if (e.dead) continue; const d = Math.hypot(e.x - p.x, (e.z || 0) - p.z); if (d < bd) { bd = d; best = e; } }
+      return best;
+    }
+
     updatePlayer(p, t) {
       if (!p || !this.playerModel) return;
       const m = this.playerModel;
       const g = m.group;
-      g.position.set(toX(p.x), toY(p.y), 0);
-      g.rotation.y = .08;
+      g.position.set(toX(p.x), toY(p.y), (p.z || 0) / PX);
+      let targetYaw = this.orbit ? this.orbit.yaw : .08;
+      const near = this._closestTarget ? this._closestTarget(p, this.game) : null;
+      if (p.state === 'attack' || p.state === 'skill' || p.state === 'deflect') {
+        if (near) targetYaw = Math.atan2(near.x - p.x, (near.z || 0) - p.z);
+      } else if (Math.hypot(p.vx || 0, p.vz || 0) > 35) {
+        targetYaw = Math.atan2(p.vx, p.vz);
+      }
+      if (m.faceYaw === undefined) m.faceYaw = targetYaw;
+      let diff = Math.atan2(Math.sin(targetYaw - m.faceYaw), Math.cos(targetYaw - m.faceYaw));
+      m.faceYaw += diff * Math.min(1, 10 * (this.lastDelta || .016));
+      g.rotation.y = m.faceYaw;
+      if (m.slash) m.slash.rotation.y = -m.faceYaw;
       const st = p.state || 'idle';
       const run = (st === 'run' || (Math.abs(p.vx) > 50 && p.onGround && !['attack', 'dodge', 'skill', 'hurt', 'ultimate', 'dead'].includes(st)));
       const anim = p.animTime || t;
@@ -1347,7 +1395,7 @@
       m.aura.scale.setScalar(2.5 + Math.sin(t * 2) * .1);
       // jump shadow
       const jump = Math.max(0, (850 - p.y) / 100);
-      m.shadow.position.set(toX(p.x), .012, 0);
+      m.shadow.position.set(toX(p.x), .012, (p.z || 0) / PX);
       m.shadow.scale.setScalar(Math.max(.35, 1 - jump * .2));
       // sword / attack
       let attackActive = false, attackProgress = 0;
@@ -1410,7 +1458,7 @@
       }
       const m = this.bossModel;
       m.group.visible = !(b.dead && b.deathT > 2.8);
-      m.group.position.set(toX(b.x), toY(b.y), 0);
+      m.group.position.set(toX(b.x), toY(b.y), (b.z || 0) / PX);
       m.group.rotation.y = .08;
       m.head.rotation.z = Math.sin(t * 1.2) * .02;
       m.body.position.y = Math.sin(t * 1.5) * .02;
@@ -1459,8 +1507,8 @@
         let m = this.enemyModels.get(e.id);
         if (!m) { m = this._buildEnemyModel(e); this.enemyModels.set(e.id, m); }
         const g = m.group;
-        g.position.set(toX(e.x), toY(e.y), 0);
-        g.rotation.y = .05;
+        g.position.set(toX(e.x), toY(e.y), (e.z || 0) / PX);
+        g.rotation.y = Math.atan2((game.player ? game.player.x - e.x : 1), (game.player ? (game.player.z || 0) - (e.z || 0) : 0)) * .35;
         const dead = e.dead;
         let bob = Math.sin(t * 2.2 + (e.seed || 0)) * (m.bob || .04);
         if (m.fly) bob += Math.sin(t * 3 + (e.seed || 0)) * .12;
@@ -1508,7 +1556,7 @@
           m = s;
           this.projectileModels.set(p, m);
         }
-        m.position.set(toX(p.x), toY(p.y), .35);
+        m.position.set(toX(p.x), toY(p.y), (p.z || 0) / PX + .35);
         m.material.opacity = .9;
       }
       for (const [p, m] of this.projectileModels) {
@@ -1541,7 +1589,7 @@
           m = { group: g, ring, flames, ringMat, flameMat };
           this.hazardModels.set(h, m);
         }
-        m.group.position.set(toX(h.x), 0, 0);
+        m.group.position.set(toX(h.x), 0, (h.z || 0) / PX);
         const width = (h.w / 100) * 1.15;
         m.ring.scale.set(width, width * (.55 + (h.h / 100) * 2), 1);
         const active = h.timer > h.delay;

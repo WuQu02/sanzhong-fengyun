@@ -24,7 +24,7 @@
     constructor(game, x, y) {
       this.game = game;
       const m = game.mods || {};
-      this.x = x; this.y = y; this.vx = 0; this.vy = 0;
+      this.x = x; this.y = y; this.z = 0; this.vx = 0; this.vy = 0; this.vz = 0;
       this.facing = 1;
       this.onGround = true;
       this.maxHp = 160 + (m.maxHp || 0);
@@ -40,6 +40,8 @@
       this.dashCd = 0; this.dashMaxCd = 1.0 * (m.dashCd || 1); this.dashDist = 1.0 * (m.dashDist || 1);
       this.skillCd = 0; this.skillMaxCd = 4.6 * (m.skillCd || 1);
       this.invuln = 0; this.perfectWindow = 0; this.perfectUsed = false;
+      this.maxPosture = 100; this.posture = 100; this.deflectCd = 0; this.deflectWindow = 0; this.deflectSuccess = false;
+      this.staggered = 0; this.dashVZ = 0; this.aimYaw = 0;
       this.hurtFlash = 0; this.hpFlash = 0;
       this.blinkOffset = Math.random() * 4;
       this.afterimages = [];
@@ -65,6 +67,10 @@
       this.dashCd = Math.max(0, this.dashCd - dt);
       this.skillCd = Math.max(0, this.skillCd - dt);
       this.perfectWindow = Math.max(0, this.perfectWindow - dt);
+      this.deflectCd = Math.max(0, this.deflectCd - dt);
+      this.deflectWindow = Math.max(0, this.deflectWindow - dt);
+      this.staggered = Math.max(0, this.staggered - dt);
+      if (this.state !== 'hurt' && this.state !== 'ultimate') this.posture = Math.min(this.maxPosture, this.posture + 7 * dt);
       this.jumpBuffer = Math.max(0, this.jumpBuffer - dt);
       this.coyote = Math.max(0, this.coyote - dt);
       this.qi = Math.min(this.maxQi, this.qi + (2.5 + (game.mods.qiRegen || 0)) * dt);
@@ -82,6 +88,8 @@
 
       // 状态计时 / 转换
       if (this.state === 'hurt' && this.stateT > .34) this.setState('idle');
+      if (this.state === 'deflect' && this.stateT > .34) this.setState('idle');
+      if (this.state === 'staggered' && this.stateT > .9) this.setState('idle');
       if (this.state === 'heal' && this.stateT > .6) this.setState('idle');
       if (this.state === 'dodge' && this.stateT > .25) this.setState('idle');
       if (this.state === 'skill' && this.stateT > .66) this.setState('idle');
@@ -89,35 +97,50 @@
       if (this.state === 'attack') this._updateAttack(game);
       if (this.state === 'ultimate') this._updateUltimate(game);
 
-      const canAct = !['hurt', 'ultimate', 'dead'].includes(this.state);
+      const canAct = !['hurt', 'ultimate', 'dead', 'staggered'].includes(this.state);
       if (canAct) {
         // 闪身可打断大部分动作
         if (input.justPressed('dodge') && this.dashCd <= 0 && this.state !== 'dodge') this._startDash(game);
+        else if (input.justPressed('deflect') && this.deflectCd <= 0 && this.state !== 'dodge' && this.state !== 'skill') this._startDeflect(game);
         else if (input.justPressed('heal') && this.flasks > 0 && this.hp < this.maxHp && this.state !== 'dodge') this._heal(game);
         else if (input.justPressed('ultimate') && this.focus >= 100) this._startUltimate(game);
         else if (input.justPressed('skill') && this.qi >= 25 && this.skillCd <= 0 && this.state !== 'dodge' && this.state !== 'skill') this._startSkill(game);
         else if (input.justPressed('attack')) this._tryAttack(game);
       }
 
-      // 移动
-      let axis = 0;
-      if (input.isDown('left')) axis -= 1;
-      if (input.isDown('right')) axis += 1;
-      const canMove = !['attack', 'dodge', 'hurt', 'ultimate', 'dead'].includes(this.state);
+      // 全向移动：WASD 相对镜头方向
+      const yaw = (game.three && game.three.orbit) ? game.three.orbit.yaw : 0;
+      const fwd = (input.isDown('forward') ? 1 : 0) - (input.isDown('back') ? 1 : 0);
+      const strafe = (input.isDown('right') ? 1 : 0) - (input.isDown('left') ? 1 : 0);
+      let dirX = -Math.sin(yaw) * fwd + Math.cos(yaw) * strafe;
+      let dirZ = -Math.cos(yaw) * fwd - Math.sin(yaw) * strafe;
+      const dLen = Math.hypot(dirX, dirZ) || 1;
+      dirX /= dLen; dirZ /= dLen;
+      const canMove = !['attack', 'dodge', 'hurt', 'ultimate', 'dead', 'deflect', 'staggered'].includes(this.state);
       if (canMove) {
         const accel = this.onGround ? 22 : 11;
-        const target = axis * this.speed * this.speedBuff * (this.state === 'skill' ? .3 : 1);
-        this.vx = U.damp(this.vx, target, accel, dt);
-        if (axis !== 0 && this.state !== 'skill' && this.state !== 'heal') this.facing = axis;
+        const moveScale = this.state === 'skill' ? .32 : this.state === 'heal' ? .35 : 1;
+        const targetX = (fwd || strafe ? dirX : 0) * this.speed * this.speedBuff * moveScale;
+        const targetZ = (fwd || strafe ? dirZ : 0) * this.speed * this.speedBuff * moveScale;
+        this.vx = U.damp(this.vx, targetX, accel, dt);
+        this.vz = U.damp(this.vz, targetZ, accel, dt);
+        if (strafe || fwd) {
+          this.facing = dirX >= 0 ? 1 : -1;
+          this.lastDirX = dirX; this.lastDirZ = dirZ;
+        }
       } else if (this.state === 'dodge') {
-        this.vx = this.facing * 1400 * this.dashDist;
-        if (Math.random() < .55) this.afterimages.push({ x: this.x, y: this.y, life: .2, facing: this.facing, state: 'dodge', stateT: .1, attackIndex: 0, animTime: this.animTime, focus: 0, hurtFlash: 0, onGround: true, vx: 0 });
+        this.vx = this.dashVX || this.facing * 1400 * this.dashDist;
+        this.vz = this.dashVZ || 0;
+        if (Math.random() < .55) this.afterimages.push({ x: this.x, y: this.y, z: this.z, life: .2, facing: this.facing, state: 'dodge', stateT: .1, attackIndex: 0, animTime: this.animTime, focus: 0, hurtFlash: 0, onGround: true, vx: 0 });
       } else if (this.state === 'attack') {
         this.vx = U.damp(this.vx, 0, 13, dt);
+        this.vz = U.damp(this.vz, 0, 13, dt);
       } else if (this.state === 'hurt') {
         this.vx = U.damp(this.vx, 0, 8, dt);
-      } else if (this.state === 'ultimate') {
-        this.vx = 0;
+        this.vz = U.damp(this.vz, 0, 8, dt);
+      } else {
+        this.vx = U.damp(this.vx, 0, 10, dt);
+        this.vz = U.damp(this.vz, 0, 10, dt);
       }
 
       // 跳跃
@@ -138,11 +161,11 @@
       if (!this.onGround || this.vy < 0) {
         this.vy += 2900 * dt;
         this.y += this.vy * dt;
-        if (input.isDown('down') && this.vy > 0) this.vy += 2200 * dt;
       } else {
         this.vy = 0;
       }
       this.x += this.vx * dt;
+      this.z += this.vz * dt;
 
       // 落地
       const floor = GROUND;
@@ -166,8 +189,10 @@
       const left = game.bounds ? game.bounds.left : 10;
       const right = game.bounds ? game.bounds.right : (game.worldWidth || 99999) - 10;
       this.x = U.clamp(this.x, left + 34, right - 34);
+      const zb = game.zBounds || { min: -280, max: 280 };
+      this.z = U.clamp(this.z, zb.min, zb.max);
       if (this.state === 'idle' || this.state === 'run') {
-        this.setState(Math.abs(this.vx) > 25 ? 'run' : 'idle');
+        this.setState((Math.abs(this.vx) > 25 || Math.abs(this.vz) > 25) ? 'run' : 'idle');
       }
     }
 
@@ -195,29 +220,23 @@
       const activeStart = this.attackIndex === 2 ? .16 : .1;
       const activeEnd = this.attackIndex === 2 ? .38 : .23;
       if (this.stateT > activeStart && this.stateT < activeEnd) {
-        const range = this.attackIndex === 2 ? 215 : 175;
-        const box = {
-          x: this.facing > 0 ? this.x + 18 : this.x - range - 18,
-          y: this.y - 190,
-          w: range, h: 185
-        };
+        const range = this.attackIndex === 2 ? 245 : 195;
+        const base = [31, 37, 57][Math.min(2, this.attackIndex)];
+        const dmg = base * game.mods.damage * (this.hp / this.maxHp < .35 ? (game.mods.lowHp || 1) : 1);
         if (game.boss && !game.boss.dead) {
-          const bb = game.boss.hitbox();
-          if (U.overlap(box, bb) && !this.attackHits.has('boss')) {
+          const dx = game.boss.x - this.x, dz = (game.boss.z || 0) - this.z;
+          if (Math.hypot(dx, dz) < range + 60 && !this.attackHits.has('boss')) {
             this.attackHits.add('boss');
-            const base = [31, 37, 57][Math.min(2, this.attackIndex)];
-            const dmg = base * game.mods.damage * (this.hp / this.maxHp < .35 ? (game.mods.lowHp || 1) : 1);
             game.boss.takeDamage(dmg, this, game);
             game.onPlayerDealtDamage(game.boss, dmg, this, this.attackIndex === 2);
           }
         }
         for (const e of game.enemies) {
           if (e.dead) continue;
-          if (U.overlap(box, e.hitbox())) {
-            if (this.attackHits.has(e.id)) continue;
+          if (this.attackHits.has(e.id)) continue;
+          const dx = e.x - this.x, dz = (e.z || 0) - this.z;
+          if (Math.hypot(dx, dz) < range) {
             this.attackHits.add(e.id);
-            const base = [31, 37, 57][Math.min(2, this.attackIndex)];
-            const dmg = base * game.mods.damage * (this.hp / this.maxHp < .35 ? (game.mods.lowHp || 1) : 1);
             e.takeDamage(dmg, this, game);
             game.onPlayerDealtDamage(e, dmg, this, this.attackIndex === 2);
           }
@@ -236,14 +255,44 @@
     _startDash(game) {
       this.setState('dodge');
       this.dashCd = this.dashMaxCd;
-      this.invuln = .28;
-      this.perfectWindow = .18 * (game.mods.perfectWindow || 1);
+      this.invuln = .3;
+      this.perfectWindow = .2 * (game.mods.perfectWindow || 1);
       this.perfectUsed = false;
-      this.vx = this.facing * 1400 * this.dashDist;
-      this.vy = 0;
-      this.afterimages.push({ x: this.x, y: this.y, life: .24, facing: this.facing, state: 'dodge', stateT: .1, attackIndex: 0, animTime: this.animTime, focus: 0, hurtFlash: 0, onGround: true, vx: 0 });
+      const yaw = (game.three && game.three.orbit) ? game.three.orbit.yaw : 0;
+      let dx = this.vx, dz = this.vz;
+      if (Math.hypot(dx, dz) < 20) { dx = -Math.sin(yaw); dz = -Math.cos(yaw); }
+      const l = Math.hypot(dx, dz) || 1;
+      this.dashVX = dx / l * 1400 * this.dashDist;
+      this.dashVZ = dz / l * 1400 * this.dashDist;
+      this.vx = this.dashVX; this.vz = this.dashVZ; this.vy = 0;
+      this.afterimages.push({ x: this.x, y: this.y, z: this.z, life: .24, facing: this.facing, state: 'dodge', stateT: .1, attackIndex: 0, animTime: this.animTime, focus: 0, hurtFlash: 0, onGround: true, vx: 0 });
       game.audio.sfx('dash');
       game.spawnBurst(this.x, this.y - 70, '#7ce9f5', 10, 190, { size: 2.5, life: .35, gravity: 0 });
+    }
+
+    _startDeflect(game) {
+      this.setState('deflect');
+      this.deflectCd = .85;
+      this.deflectWindow = .24;
+      this.deflectSuccess = false;
+      this.vx = 0; this.vz = 0;
+      game.audio.sfx('warn');
+      game.addShake(2);
+      for (let i = 0; i < 8; i++) game.spawnParticle(this.x + U.rand(-20, 20), this.y - U.rand(30, 150), U.rand(-45, 45), U.rand(-70, 20), .35, 2, '#bfefff', 0, true);
+    }
+
+    _nearestTarget(game) {
+      let best = null, bd = 1e9;
+      if (game.boss && !game.boss.dead) {
+        const d = Math.hypot(game.boss.x - this.x, (game.boss.z || 0) - this.z);
+        if (d < bd) { bd = d; best = game.boss; }
+      }
+      for (const e of game.enemies) {
+        if (e.dead) continue;
+        const d = Math.hypot(e.x - this.x, (e.z || 0) - this.z);
+        if (d < bd) { bd = d; best = e; }
+      }
+      return best;
     }
 
     _startSkill(game) {
@@ -252,12 +301,22 @@
       this.skillCd = this.skillMaxCd;
       this.vx = 0;
       game.audio.sfx('skill');
+      const target = this._nearestTarget(game);
+      let ax = target ? target.x - this.x : this.facing * 400;
+      let az = target ? (target.z || 0) - this.z : 0;
+      if (!target) {
+        const yaw = (game.three && game.three.orbit) ? game.three.orbit.yaw : 0;
+        ax = -Math.sin(yaw) * 400; az = -Math.cos(yaw) * 400;
+      }
+      const al = Math.hypot(ax, az) || 1; ax /= al; az /= al;
+      this.aimYaw = Math.atan2(ax, az);
       for (let i = 0; i < 3; i++) {
+        const sp = 980 + i * 30;
         game.projectiles.push(new Projectile(game, {
-          x: this.x + this.facing * 42,
+          x: this.x + ax * 42,
           y: this.y - 78 - i * 25,
-          vx: this.facing * (980 + i * 30),
-          vy: (i - 1) * 35,
+          z: this.z + az * 42,
+          vx: ax * sp, vy: (i - 1) * 35, vz: az * sp,
           r: 34, damage: 39 * game.mods.damage * (game.mods.skillDamage || 1),
           kind: 'playerWave', owner: 'player', life: .85, pierce: 3,
           angle: this.facing > 0 ? 0 : Math.PI
@@ -297,7 +356,7 @@
       }
     }
 
-    hitBy(damage, sourceX, game, sourceName) {
+    hitBy(damage, sourceX, game, sourceName, sourceEntity) {
       if (this.dead) return false;
       if (this.state === 'dodge' && this.perfectWindow > 0 && !this.perfectUsed) {
         this.perfectUsed = true;
@@ -309,15 +368,33 @@
         game.onPerfectDodge(this, sourceX);
         return false;
       }
+      if (this.state === 'deflect' && this.deflectWindow > 0 && !this.deflectSuccess) {
+        this.deflectSuccess = true;
+        this.deflectWindow = 0;
+        this.invuln = .36;
+        this.posture = Math.min(this.maxPosture, this.posture + 22);
+        this.addFocus(12);
+        this.qi = Math.min(this.maxQi, this.qi + 16);
+        game.onDeflect(this, sourceEntity, sourceX);
+        return false;
+      }
       if (this.invuln > 0) return false;
       const dmg = Math.max(1, Math.round(damage));
       this.hp -= dmg;
+      this.posture = Math.max(0, this.posture - dmg * .55);
       this.hpFlash = .4;
       this.hurtFlash = .16;
       this.invuln = .68;
       this.lastHurtBy = sourceName || '';
-      this.setState('hurt');
+      this.setState(this.posture <= 0 ? 'staggered' : 'hurt');
+      if (this.posture <= 0) {
+        this.staggered = 1.1;
+        this.posture = 38;
+        this.invuln = Math.max(this.invuln, .9);
+        game.addText(this.x, this.y - 230, '气竭', '#ffd47e', 25, { bold: true });
+      }
       this.vx = U.sign(this.x - sourceX) * 330;
+      this.vz = (this.z - (sourceEntity && sourceEntity.z !== undefined ? sourceEntity.z : 0)) * .8;
       this.vy = -190;
       this.onGround = false;
       game.onPlayerHurt(dmg, sourceName);
@@ -369,13 +446,16 @@
       this.variant = opts.variant || 'sword';
       this.isElite = !!cfg.isElite;
       this.size = cfg.size;
-      this.x = x; this.y = opts.y !== undefined ? opts.y : GROUND;
+      this.x = x; this.y = opts.y !== undefined ? opts.y : GROUND; this.z = opts.z !== undefined ? opts.z : U.rand(-180, 180);
       this.baseY = this.y;
-      this.vx = 0; this.vy = 0;
+      this.vx = 0; this.vy = 0; this.vz = 0;
       this.facing = -1;
       this.state = 'idle'; this.stateT = 0;
       this.hp = cfg.hp * (opts.hpScale || 1);
       this.maxHp = this.hp;
+      this.maxPosture = cfg.isElite ? 150 : (cfg.armor ? 120 : 80);
+      this.posture = this.maxPosture;
+      this.staggered = 0; this.executable = false;
       this.damage = cfg.damage * (opts.dmgScale || 1);
       this.speed = cfg.speed * (opts.speedScale || 1);
       this.range = cfg.range;
@@ -404,6 +484,13 @@
       this.attackCd = Math.max(0, this.attackCd - dt);
       this.stateT += dt;
       if (this.spawnT > 0) { this.spawnT -= dt; return; }
+      if (this.staggered > 0) {
+        this.staggered = Math.max(0, this.staggered - dt);
+        this.state = 'stagger'; this.executable = true;
+        this.vx = U.damp(this.vx, 0, 8, dt); this.vz = U.damp(this.vz, 0, 8, dt);
+        if (this.staggered <= 0) { this.posture = this.maxPosture * .5; this.executable = false; this.state = 'chase'; }
+        return;
+      }
       if (this.hitstun > 0) {
         this.x += this.vx * dt;
         this.vx = U.damp(this.vx, 0, 8, dt);
@@ -412,7 +499,8 @@
       }
 
       const p = game.player;
-      const dx = p.x - this.x;
+      const dx = p.x - this.x, dz = (p.z || 0) - this.z;
+      const dist = Math.hypot(dx, dz);
       this.facing = dx >= 0 ? 1 : -1;
 
       if (this.isElite) { this.updateElite(dt, game, p); this._constrain(game); return; }
@@ -435,19 +523,20 @@
       }
 
       // 追击
-      const dist = Math.abs(dx);
       if (this.cfg.ranged) {
         const desired = this.type === 'paper' ? 420 : 300;
-        if (dist < desired - 60) this.vx = U.damp(this.vx, -this.facing * this.speed, 6, dt);
-        else if (dist > desired + 80) this.vx = U.damp(this.vx, this.facing * this.speed, 6, dt);
-        else this.vx = U.damp(this.vx, 0, 8, dt);
-        this.x += this.vx * dt;
+        const nx = dx / (dist || 1), nz = dz / (dist || 1);
+        if (dist < desired - 60) { this.vx = U.damp(this.vx, -nx * this.speed, 6, dt); this.vz = U.damp(this.vz, -nz * this.speed, 6, dt); }
+        else if (dist > desired + 80) { this.vx = U.damp(this.vx, nx * this.speed, 6, dt); this.vz = U.damp(this.vz, nz * this.speed, 6, dt); }
+        else { this.vx = U.damp(this.vx, 0, 8, dt); this.vz = U.damp(this.vz, 0, 8, dt); }
+        this.x += this.vx * dt; this.z += this.vz * dt;
         this.y = this.baseY + Math.sin(game.time * 2.2 + this.seed) * (this.cfg.flying ? 14 : 5);
         if (this.attackCd <= 0 && dist < 760) { this.state = 'windup'; this.stateT = 0; this.attackCd = U.rand(1.5, 2.4); }
       } else {
-        if (dist > this.cfg.range * .78) this.vx = U.damp(this.vx, this.facing * this.speed, 9, dt);
-        else this.vx = U.damp(this.vx, 0, 11, dt);
-        this.x += this.vx * dt;
+        const nx = dx / (dist || 1), nz = dz / (dist || 1);
+        if (dist > this.cfg.range * .78) { this.vx = U.damp(this.vx, nx * this.speed, 9, dt); this.vz = U.damp(this.vz, nz * this.speed, 9, dt); }
+        else { this.vx = U.damp(this.vx, 0, 11, dt); this.vz = U.damp(this.vz, 0, 11, dt); }
+        this.x += this.vx * dt; this.z += this.vz * dt;
         if (this.cfg.flying) this.y = this.baseY + Math.sin(game.time * 3 + this.seed) * 18;
         else this.y = this.baseY;
         if (this.attackCd <= 0 && dist < this.cfg.range) { this.state = 'windup'; this.stateT = 0; this.attackCd = U.rand(1.05, 1.7); }
@@ -457,10 +546,10 @@
 
     _onAttackStart(game, p) {
       if (this.type === 'paper') {
-        const dx = p.x - this.x, dy = (p.y - 100) - this.y;
-        const a = Math.atan2(dy, dx);
+        const dx = p.x - this.x, dz = (p.z || 0) - this.z, hd = Math.hypot(dx, dz) || 1;
+        const vx = dx / hd * 430, vz = dz / hd * 430;
         game.projectiles.push(new Projectile(game, {
-          x: this.x, y: this.y - 95, vx: Math.cos(a) * 430, vy: Math.sin(a) * 430,
+          x: this.x, y: this.y - 95, z: this.z, vx, vy: (p.y - 100 - this.y) * .35, vz,
           r: 11, damage: this.damage, kind: 'enemyBolt', owner: 'enemy', life: 2.4
         }));
         game.audio.sfx('bossCast');
@@ -476,16 +565,14 @@
       if (this.type === 'crow') {
         this.x += (this.cfg._diveVx || 0) * dt;
         this.y = U.damp(this.y, GROUND - 90, 12, dt);
-        if (U.circleRect(this.x, this.y - 110, 40, { x: p.x - 28, y: p.y - 170, w: 56, h: 160 })) {
-          if (p.hitBy(this.damage, this.x, game, this.cfg.name)) this.hasHit = true;
+        if (Math.hypot(p.x - this.x, (p.z || 0) - this.z) < 60 && Math.abs(p.y - this.y) < 190) {
+          if (p.hitBy(this.damage, this.x, game, this.cfg.name, this)) this.hasHit = true;
         }
         return;
       }
       const reach = this.type === 'shield' ? 155 : 125;
-      const box = { x: this.facing > 0 ? this.x + 20 : this.x - reach - 20, y: this.y - 150, w: reach, h: 150 };
-      const pbox = { x: p.x - 28, y: p.y - 168, w: 56, h: 168 };
-      if (U.overlap(box, pbox)) {
-        if (p.hitBy(this.damage, this.x, game, this.cfg.name)) this.hasHit = true;
+      if (Math.hypot(p.x - this.x, (p.z || 0) - this.z) < reach && Math.abs(p.y - this.y) < 210) {
+        if (p.hitBy(this.damage, this.x, game, this.cfg.name, this)) this.hasHit = true;
       }
     }
 
@@ -517,7 +604,7 @@
         if (!this.hasHit && this.stateT < .32) {
           const box = { x: this.x - 80, y: this.y - 220, w: 160, h: 220 };
           const pbox = { x: p.x - 28, y: p.y - 168, w: 56, h: 168 };
-          if (U.overlap(box, pbox) && p.hitBy(this.damage * 1.15, this.x, game, this.name)) this.hasHit = true;
+          if (U.overlap(box, pbox) && p.hitBy(this.damage * 1.15, this.x, game, this.name, this)) this.hasHit = true;
         }
         if (this.stateT > .45) { this.state = 'recover'; this.stateT = 0; }
         return;
@@ -569,13 +656,15 @@
     _eliteMelee(game, p) {
       const box = { x: this.facing > 0 ? this.x + 30 : this.x - 195, y: this.y - 250, w: 190, h: 250 };
       const pbox = { x: p.x - 28, y: p.y - 168, w: 56, h: 168 };
-      if (U.overlap(box, pbox) && p.hitBy(this.damage, this.x, game, this.name)) this.hasHit = true;
+      if (U.overlap(box, pbox) && p.hitBy(this.damage, this.x, game, this.name, this)) this.hasHit = true;
     }
 
     _constrain(game) {
       const left = game.bounds ? game.bounds.left : 20;
       const right = game.bounds ? game.bounds.right : (game.worldWidth || 99999) - 20;
       this.x = U.clamp(this.x, left + 40, right - 40);
+      const zb = game.zBounds || { min: -280, max: 280 };
+      this.z = U.clamp(this.z, zb.min, zb.max);
     }
 
     takeDamage(amount, source, game) {
@@ -589,11 +678,14 @@
       dmg = Math.max(1, Math.round(dmg));
       this.hp -= dmg;
       this.hurtFlash = .16;
+      this.posture = Math.max(0, this.posture - (this.isElite ? 5 : 8));
       if (!this.isElite && this.type !== 'shield') this.hitstun = .16;
       this.vx = U.sign(this.x - source.x) * (this.isElite ? 15 : 170);
+      this.vz = U.sign(this.z - (source.z || 0)) * (this.isElite ? 8 : 80);
       game.spawnBurst(this.x, this.y - (this.isElite ? 160 : 80), blocked ? '#e8c47a' : '#b8fbff', blocked ? 5 : 8, 180, { size: 2.6, life: .35, gravity: 300 });
       if (blocked) game.addText(this.x, this.y - 130, '格挡', '#e8c47a', 16);
-      if (this.hp <= 0) this.die(game);
+      if (this.hp <= 0) { this.die(game); return; }
+      if (this.posture <= 0) { this.staggered = 1.8; this.executable = true; this.state = 'stagger'; game.addText(this.x, this.y - 160, '气竭', '#ffd47e', 24, { bold: true }); game.audio.sfx('gong'); game.addShake(5); }
     }
 
     die(game) {
@@ -674,6 +766,7 @@
       this.pattern = null; this.patternT = 0; this.pFlags = {};
       this.attackCd = 1.4;
       this.invuln = 0; this.hurtFlash = 0; this.poise = 0;
+      this.z = 0; this.maxPosture = 220; this.posture = 220; this.executable = false;
       this.dead = false; this.deathT = 0;
       this.phaseTriggered = 0;
       this.nextBark = 12;
@@ -706,7 +799,8 @@
         return;
       }
       if (this.state === 'stagger') {
-        if (this.stateT > 1.25) { this.state = 'idle'; this.stateT = 0; this.attackCd = .5; }
+        this.executable = true;
+        if (this.stateT > 1.5) { this.state = 'idle'; this.stateT = 0; this.attackCd = .5; this.posture = this.maxPosture * .5; this.executable = false; }
         return;
       }
       if (this.state === 'dead') return;
@@ -786,7 +880,7 @@
             if (!flags.hit) {
               const box = { x: this.x - 90, y: this.y - 300, w: 180, h: 300 };
               if (U.overlap(box, { x: p.x - 28, y: p.y - 168, w: 56, h: 168 })) {
-                if (p.hitBy(24 * game.damageScale, this.x, game, '刘奥 · 断岳')) flags.hit = true;
+                if (p.hitBy(24 * game.damageScale, this.x, game, '刘奥 · 断岳', this)) flags.hit = true;
               }
             }
             this.x = U.clamp(this.x, game.bounds.left + 100, game.bounds.right - 100);
@@ -851,7 +945,7 @@
             flags.slash = true;
             this.state = 'attack'; this.stateT = 0;
             const box = { x: this.x - 130, y: this.y - 300, w: 260, h: 300 };
-            if (U.overlap(box, { x: p.x - 28, y: p.y - 168, w: 56, h: 168 })) p.hitBy(25 * game.damageScale, this.x, game, '刘奥 · 影断');
+            if (U.overlap(box, { x: p.x - 28, y: p.y - 168, w: 56, h: 168 })) p.hitBy(25 * game.damageScale, this.x, game, '刘奥 · 影断', this);
             for (let i = 0; i < 3; i++) {
               game.projectiles.push(new Projectile(game, {
                 x: this.x + this.facing * 60, y: this.y - 80 - i * 45,
@@ -902,6 +996,7 @@
       const dmg = Math.max(1, Math.round(amount));
       this.hp -= dmg;
       this.hurtFlash = .14;
+      this.posture = Math.max(0, this.posture - dmg * .06);
       this.poise += dmg;
       if (this.poise > 780) {
         this.poise = 0;
@@ -912,6 +1007,10 @@
         game.addShake(8);
       }
       game.spawnBurst(this.x + U.rand(-40, 40), this.y - U.rand(80, 300), '#b8fbff', 7, 170, { size: 2.5, life: .35, gravity: 300 });
+      if (this.posture <= 0 && this.state !== 'stagger') {
+        this.state = 'stagger'; this.stateT = 0; this.executable = true;
+        game.addText(this.x, this.y - 360, '气竭', '#ffd47e', 30, { bold: true }); game.audio.sfx('gong'); game.addShake(8);
+      }
       if (this.hp <= 0) { this.hp = 0; this.die(game); }
     }
 
@@ -968,7 +1067,7 @@
   class Projectile {
     constructor(game, opts) {
       Object.assign(this, {
-        game, x: 0, y: 0, vx: 0, vy: 0, r: 10, damage: 10, kind: 'enemyBolt',
+        game, x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, r: 10, damage: 10, kind: 'enemyBolt',
         owner: 'enemy', life: 2, pierce: 0, angle: 0, dir: 1, gravity: 0
       }, opts);
       this.dead = false;
@@ -978,13 +1077,13 @@
     update(dt, game) {
       if (this.dead) return;
       this.t += dt; this.life -= dt;
-      this.x += this.vx * dt; this.y += this.vy * dt;
+      this.x += this.vx * dt; this.y += this.vy * dt; this.z += (this.vz || 0) * dt;
       if (this.gravity) this.vy += this.gravity * dt;
       if (this.life <= 0 || this.x < -200 || this.x > (game.worldWidth || 99999) + 200 || this.y < -300 || this.y > 1200) { this.dead = true; return; }
       if (this.owner === 'player') {
         if (game.boss && !game.boss.dead && !this.hits.has('boss')) {
           const bb = game.boss.hitbox();
-          if (U.circleRect(this.x, this.y, this.r, bb)) {
+          if (U.circleRect(this.x, this.y, this.r, bb) && Math.abs(this.z - (game.boss.z || 0)) < 100) {
             this.hits.add('boss');
             game.boss.takeDamage(this.damage, { x: this.x }, game);
             game.onPlayerDealtDamage(game.boss, this.damage, { x: this.x - 200 }, false);
@@ -993,7 +1092,7 @@
         }
         for (const e of game.enemies) {
           if (e.dead || this.hits.has(e.id)) continue;
-          if (U.circleRect(this.x, this.y, this.r, e.hitbox())) {
+          if (U.circleRect(this.x, this.y, this.r, e.hitbox()) && Math.abs(this.z - (e.z || 0)) < 90) {
             this.hits.add(e.id);
             e.takeDamage(this.damage, { x: this.x - Math.sign(this.vx) * 50 }, game);
             game.onPlayerDealtDamage(e, this.damage, { x: this.x - Math.sign(this.vx) * 50 }, false);
@@ -1002,8 +1101,8 @@
         }
       } else {
         const p = game.player;
-        if (!p.dead && U.circleRect(this.x, this.y, this.r, { x: p.x - 28, y: p.y - 168, w: 56, h: 168 })) {
-          if (p.hitBy(this.damage, this.x - Math.sign(this.vx) * 40, game, '刘奥 · 残焰')) {
+        if (!p.dead && U.circleRect(this.x, this.y, this.r, { x: p.x - 28, y: p.y - 168, w: 56, h: 168 }) && Math.abs(this.z - p.z) < 70) {
+          if (p.hitBy(this.damage, this.x - Math.sign(this.vx) * 40, game, '刘奥 · 残焰', this)) {
             this.dead = true;
             game.spawnBurst(this.x, this.y, '#ff9678', 8, 170, { size: 2, life: .3, gravity: 250 });
           }
@@ -1015,7 +1114,7 @@
 
   class Hazard {
     constructor(game, opts) {
-      Object.assign(this, { x: 0, y: GROUND, w: 120, h: 30, kind: 'fire', delay: .8, life: 1.6, damage: 20, seed: 1 }, opts);
+      Object.assign(this, { x: 0, y: GROUND, z: 0, w: 120, h: 30, kind: 'fire', delay: .8, life: 1.6, damage: 20, seed: 1 }, opts);
       this.timer = 0; this.dead = false; this.hit = false; this.game = game;
     }
     update(dt, game) {
@@ -1024,7 +1123,7 @@
       if (this.timer > this.life) { this.dead = true; return; }
       if (this.timer > this.delay && !this.hit) {
         const p = game.player;
-        if (!p.dead && U.circleRect(p.x, p.y - 25, 36, { x: this.x - this.w / 2, y: this.y - 70, w: this.w, h: 90 })) {
+        if (!p.dead && Math.abs((p.z || 0) - this.z) < 110 && U.circleRect(p.x, p.y - 25, 36, { x: this.x - this.w / 2, y: this.y - 70, w: this.w, h: 90 })) {
           if (p.hitBy(this.damage, this.x, game, this.kind === 'fire' ? '刘奥 · 焚心' : '刘奥 · 断岳')) this.hit = true;
         }
       }

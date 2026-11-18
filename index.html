@@ -61,7 +61,8 @@
         <div class="hud-stats">
           <div class="hud-name"><b id="hudName">深 寻</b><span>DEEPSEEK</span><em id="hudChapter">序章</em></div>
           <div class="bar hp-bar"><i id="hpFill"></i><span id="hpText">160 / 160</span></div>
-          <div class="bar qi-bar"><i id="qiFill"></i><span>气</span></div>
+          <div class="bar qi-bar"><i id="qiFill"></i><span>Token</span></div>
+          <div class="bar posture-bar"><i id="postureFill"></i><span>架势</span></div>
           <div class="hud-badges">
             <span class="flask-badge" id="flaskBadge"><i>鲸露</i><b id="flaskCount">3</b></span>
             <span class="focus-badge" id="focusBadge"><i>心念</i><b id="focusText">0%</b></span>
@@ -156,18 +157,20 @@
         <p class="panel-eyebrow">问心式</p>
         <h2>操作与招式</h2>
         <div class="help-grid">
-          <div class="help-item"><kbd>A</kbd><kbd>D</kbd><span>左右移动</span></div>
-          <div class="help-item"><kbd>W</kbd><span>跳跃 / 二段跳</span></div>
+          <div class="help-item"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><span>全向移动</span></div>
+          <div class="help-item"><kbd>Space</kbd><span>跳跃 / 二段跳</span></div>
+          <div class="help-item"><kbd>鼠标右键拖拽</kbd><span>环绕视角</span></div>
           <div class="help-item"><kbd>J</kbd><span>三段连斩</span></div>
-          <div class="help-item"><kbd>K</kbd><span>潮涌斩 · 消耗气</span></div>
-          <div class="help-item"><kbd>L</kbd><span>闪身 · 短暂无敌</span></div>
-          <div class="help-item"><kbd>E</kbd><span>鲸露 · 回复生命</span></div>
+          <div class="help-item"><kbd>K</kbd><span>潮涌斩 · 消耗 Token</span></div>
+          <div class="help-item"><kbd>Shift</kbd><span>闪身 · 无敌帧</span></div>
+          <div class="help-item"><kbd>E</kbd><span>卸势 · 红光时弹反</span></div>
+          <div class="help-item"><kbd>F</kbd><span>处决气竭敌人 / 互动</span></div>
+          <div class="help-item"><kbd>R</kbd><span>鲸露 · 回复生命</span></div>
           <div class="help-item"><kbd>U</kbd><span>鲸落 · 心念满时释放</span></div>
-          <div class="help-item"><kbd>F</kbd><span>与附近的生灵、器物互动</span></div>
           <div class="help-item"><kbd>Esc</kbd><span>暂停 / 跳过过场</span></div>
         </div>
         <div class="help-tip">
-          <b>完美闪身</b><span>在攻击命中前一瞬按 <kbd>L</kbd>，可令梦境减速，并快速积攒气与心念。</span>
+          <b>完美闪身 · 卸势</b><span>在命中前一瞬按 <kbd>Shift</kbd> 触发 0.2 倍子弹时间；看到红光时按 <kbd>E</kbd> 削减敌人真气。<br>敌人真气归零后靠近按 <kbd>F</kbd> 处决。</span>
         </div>
         <button class="ink-btn primary wide" data-action="closeHelp">明白了</button>
       </div>
@@ -269,7 +272,9 @@
     <div id="touchControls" class="touch-controls hidden">
       <button class="t-pause" data-action="pause" aria-label="暂停">停</button>
       <div class="touch-move">
+        <button data-touch="forward" aria-label="向前">▲</button>
         <button data-touch="left" aria-label="向左">◀</button>
+        <button data-touch="back" aria-label="向后">▼</button>
         <button data-touch="right" aria-label="向右">▶</button>
       </div>
       <div class="touch-action">
@@ -278,6 +283,7 @@
         <button data-touch="attack" class="t-attack">斩</button>
         <button data-touch="skill" class="t-skill">潮</button>
         <button data-touch="heal" class="t-heal">露</button>
+        <button data-touch="deflect" class="t-deflect">卸</button>
         <button data-touch="interact" class="t-interact">触</button>
         <button data-touch="ultimate" class="t-ult">鲸</button>
       </div>

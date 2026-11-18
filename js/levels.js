@@ -17,13 +17,15 @@
       startX: 260,
       objective: '循着心念的裂痕，向山上走',
       tips: [
-        { key: 'A / D', text: '左右移动', dur: 4.2 },
-        { key: 'W', text: '跳跃 · 可二段跳', dur: 4.2 },
+        { key: 'WASD', text: '全向移动 · 鼠标右键拖拽环绕视角', dur: 5.4 },
+        { key: 'Space', text: '跳跃 · 可二段跳', dur: 4.2 },
         { key: 'J', text: '三段连斩', dur: 4.2 },
         { key: 'K', text: '潮涌斩 · 消耗气', dur: 4.3 },
-        { key: 'L', text: '闪身 · 命中前一瞬可完美闪身', dur: 5 },
-        { key: 'E', text: '鲸露疗伤 · U 心念满时释放鲸落', dur: 5.5 },
-        { key: 'F', text: '与雪兔、猫、长明灯等环境生灵互动', dur: 5 }
+        { key: 'Shift', text: '闪身 · 命中前一瞬触发 0.2 倍子弹时间', dur: 5.4 },
+        { key: 'E', text: '卸势 · 红光时弹反近战与飞行物', dur: 5.2 },
+        { key: 'R', text: '鲸露疗伤', dur: 4.2 },
+        { key: 'F', text: '处决气竭敌人 · 与校园生灵与器物互动', dur: 5.2 },
+        { key: 'U', text: '鲸落 · 心念满时释放', dur: 4.5 }
       ],
       encounters: [
         {

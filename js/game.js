@@ -21,7 +21,7 @@
       this.el = {
         title: $('titleScreen'), continueBtn: $('continueBtn'),
         hud: $('hud'), hudPortrait: $('hudPortrait'), hudName: $('hudName'), hudChapter: $('hudChapter'),
-        hpFill: $('hpFill'), hpText: $('hpText'), qiFill: $('qiFill'),
+        hpFill: $('hpFill'), hpText: $('hpText'), qiFill: $('qiFill'), postureFill: $('postureFill'),
         flaskCount: $('flaskCount'), focusText: $('focusText'), focusBadge: $('focusBadge'),
         stageLabel: $('stageLabel'), timerText: $('timerText'), objective: $('objective'),
         combo: $('comboDisplay'), comboNumber: $('comboNumber'), comboRank: $('comboRank'),
@@ -65,7 +65,7 @@
       this.worldWidth = 1920;
       this.stageIndex = 0;
       this.damageScale = 1;
-      this.camera = { x: 960, y: 0 };
+      this.camera = { x: 960, y: 0, z: 0 };
       this.shakePower = 0;
       this.hitstop = 0;
       this.slowTimer = 0;
@@ -681,7 +681,8 @@
       }
       this.player = new Player(this, startX, GROUND);
       this.camera.x = U.clamp(startX, 960, Math.max(960, this.level.width - 960));
-      this.camera.y = 0;
+      this.camera.y = 0; this.camera.z = 0;
+      this.zBounds = { min: -280, max: 280 };
 
       this.el.title.classList.add('hidden');
       this.el.pause.classList.add('hidden');
@@ -711,6 +712,7 @@
       this.state = 'playing';
       this.input.reset();
       this.audio.startMusic(this.level.theme === 'boss' ? 'boss' : this.level.theme);
+      this.audio.bgmState = 'explore'; this.audio.lastExploreTheme = this.level.theme;
       this.audio.setIntensity(this.level.bossFight ? .38 : .22);
       this.saveGame(false);
       this.updatePortrait();
@@ -752,7 +754,7 @@
       }
 
       this.worldTime = (this.worldTime || 0) + dt;
-      const slow = this.slowTimer > 0 ? .34 : 1;
+      const slow = this.slowTimer > 0 ? .2 : 1;
       const stop = this.hitstop > 0 ? .08 : 1;
       const worldDt = dt * slow * stop;
       const playerDt = dt * (this.hitstop > 0 ? .4 : 1);
@@ -775,7 +777,9 @@
           if (!s.collected && Math.abs(this.player.x - s.x) < 86) this.collectSecret(s);
         }
       }
-      this.updateInteractables();
+      this.updateExecuteTarget();
+      if (this.executeTarget && this.input.justPressed('interact')) this.executeFinisher(this.executeTarget);
+      else this.updateInteractables();
 
       if (this.boss) {
         this.boss.update(worldDt, this);
@@ -818,6 +822,69 @@
       this.texts = this.texts.filter(t => !t.dead);
     }
 
+    updateExecuteTarget() {
+      this.executeTarget = null;
+      if (!this.player) return;
+      let best = null, bd = 185;
+      const check = (t) => {
+        if (!t || t.dead) return;
+        if (!(t.staggered > 0 || t.state === 'stagger' || t.executable)) return;
+        const d = Math.hypot(t.x - this.player.x, (t.z || 0) - this.player.z);
+        if (d < bd) { bd = d; best = t; }
+      };
+      for (const e of this.enemies) check(e);
+      if (this.boss) check(this.boss);
+      this.executeTarget = best;
+    }
+
+    executeFinisher(target) {
+      if (!target || !this.player) return;
+      this.executeTarget = null;
+      this.player.setState('attack'); this.player.attackIndex = 2; this.player.stateT = 0;
+      this.player.attackHits = new Set();
+      this.audio.sfx('slashHeavy'); this.audio.sfx('gong');
+      this.hitstop = Math.max(this.hitstop, .16);
+      this.addShake(14);
+      this.flashScreen('#ffe3ad', .22);
+      this.slowTimer = Math.max(this.slowTimer, .5);
+      this.addText(target.x, target.y - 180, '处决', '#ffe1a3', 32, { bold: true, life: 1.2 });
+      if (target === this.boss) {
+        target.invuln = 0; target.takeDamage(target.maxHp * .22, this.player, this);
+        target.state = 'idle'; target.stateT = 0; target.executable = false; target.posture = target.maxPosture * .5;
+      } else {
+        target.takeDamage(99999, this.player, this);
+      }
+      this.spawnBurst(target.x, target.y - 150, '#ffd699', 45, 360, { size: 4, life: 1, gravity: 260, additive: true });
+      this.player.addFocus(20);
+    }
+
+    onDeflect(player, sourceEntity, sourceX) {
+      this.audio.playSound('deflect');
+      this.addShake(7);
+      this.flashScreen('#bff7ff', .12);
+      this.hitstop = Math.max(this.hitstop, .08);
+      this.addText(player.x, player.y - 225, '卸势', '#bffaff', 28, { bold: true, life: .9 });
+      this.spawnBurst(player.x, player.y - 100, '#c7fbff', 24, 330, { size: 3, life: .6, gravity: 0, additive: true });
+      if (sourceEntity && sourceEntity.owner === 'enemy') {
+        sourceEntity.owner = 'player';
+        sourceEntity.vx *= -2; sourceEntity.vz = (sourceEntity.vz || 0) * -2;
+        sourceEntity.vy = (sourceEntity.vy || 0) * -.4;
+        sourceEntity.damage *= 1.7;
+        sourceEntity.reflected = true;
+        this.addText(sourceEntity.x, sourceEntity.y - 40, '弹反 ×2', '#9ff7ff', 22, { bold: true });
+        return;
+      }
+      if (sourceEntity && sourceEntity.posture !== undefined) {
+        sourceEntity.posture = Math.max(0, sourceEntity.posture - (sourceEntity.isElite || sourceEntity === this.boss ? 40 : 55));
+        if (sourceEntity.posture <= 0) {
+          if (sourceEntity === this.boss) { sourceEntity.state = 'stagger'; sourceEntity.stateT = 0; sourceEntity.executable = true; }
+          else { sourceEntity.staggered = 1.8; sourceEntity.executable = true; sourceEntity.state = 'stagger'; }
+          this.addText(sourceEntity.x, sourceEntity.y - 220, '气竭', '#ffd27a', 28, { bold: true });
+          this.audio.sfx('gong');
+        }
+      }
+    }
+
     updateInteractables() {
       if (!this.interactables || !this.player) { this.nearInteractable = null; return; }
       let best = null, bestD = 142;
@@ -848,7 +915,7 @@
       it.used = true;
       it.interactAt = this.time;
       this.nearInteractable = null;
-      this.audio.sfx('life');
+      this.audio.playSound(it.kind === 'squirrel' ? 'squirrel' : 'life');
       this.bark(it.name, it.text, it.voice || null);
       if (it.achievement) this.unlockAchievement(it.achievement);
       if (it.buff === 'cat') {
@@ -874,8 +941,9 @@
     updateCamera(dt) {
       if (!this.player) return;
       let target = this.player.x + this.player.facing * 80;
-      if (this.boss && !this.boss.dead) target = this.player.x * .58 + this.boss.x * .42;
-      else if (this.bossTarget && !this.bossTarget.dead) target = this.player.x * .8 + this.bossTarget.x * .2;
+      let targetZ = this.player.z || 0;
+      if (this.boss && !this.boss.dead) { target = this.player.x * .58 + this.boss.x * .42; targetZ = (this.player.z || 0) * .58 + (this.boss.z || 0) * .42; }
+      else if (this.bossTarget && !this.bossTarget.dead) { target = this.player.x * .8 + this.bossTarget.x * .2; targetZ = (this.player.z || 0) * .8 + (this.bossTarget.z || 0) * .2; }
       let minC = 960, maxC = Math.max(960, (this.level ? this.level.width : 1920) - 960);
       if (this.arenaLock && this.level) {
         let L, R;
@@ -889,6 +957,7 @@
       target = U.clamp(target, minC, maxC);
       this.camera.x = U.damp(this.camera.x, target, 4.2, dt);
       this.camera.x = U.clamp(this.camera.x, minC, maxC);
+      this.camera.z = U.damp(this.camera.z || 0, targetZ, 4.2, dt);
       this.camera.y = 0;
     }
 
@@ -915,6 +984,7 @@
       this.objective = enc.label;
       this.el.objective.textContent = enc.label;
       this.audio.sfx('warn');
+      this.audio.switchBGM('combat', this.level.theme);
       this.showToast(enc.label, enc.elite ? 'red' : '');
       if (enc.barks) {
         for (const b of enc.barks) this.bark(b[0], b[1], b[2]);
@@ -994,6 +1064,7 @@
       this.player.flasks = Math.min(this.player.maxFlasks, this.player.flasks + 1);
       this.addShake(6);
       this.audio.sfx('checkpoint');
+      this.audio.switchBGM('explore', this.level.theme);
       this.saveGame(false);
       this.showToast('心障已破 · 心灯续了一寸', 'gold');
       this.objective = this.cleared >= this.level.encounters.length ? '向山顶去' : '向山中去';
@@ -1079,7 +1150,7 @@
       this.stats.maxCombo = Math.max(this.stats.maxCombo, this.combo);
       this.maxCombo = Math.max(this.maxCombo || 0, this.combo);
       this.stats.damage += damage;
-      this.hitstop = Math.max(this.hitstop, heavy ? .055 : .026);
+      this.hitstop = Math.max(this.hitstop, heavy ? .14 : .1);
       this.addShake(heavy ? 5.5 : 2.8);
       this.audio.sfx(heavy ? 'slashHeavy' : 'hit');
       const tx = target.x || source.x;
@@ -1101,10 +1172,10 @@
       this.achData.perfect = (this.achData.perfect || 0) + 1;
       this.saveAchievements();
       if (this.achData.perfect >= 3) this.unlockAchievement('mirror');
-      this.slowTimer = .9;
+      this.slowTimer = 1.5;
       this.flashScreen('#8cefff', .16);
       this.addShake(5);
-      this.audio.sfx('perfect');
+      this.audio.playSound('perfectDodge');
       this.addText(player.x, player.y - 235, '完美闪身', '#9bf7ff', 26, { bold: true, life: 1.1 });
       this.spawnBurst(player.x, player.y - 100, '#aef8ff', 22, 280, { size: 2.8, life: .6, gravity: 0, additive: true });
     }
@@ -1582,6 +1653,7 @@
         this.el.hpFill.style.width = (hpP * 100) + '%';
         this.el.hpText.textContent = `${Math.ceil(p.hp)} / ${p.maxHp}`;
         this.el.qiFill.style.width = (U.clamp(p.qi / p.maxQi, 0, 1) * 100) + '%';
+        if (this.el.postureFill) this.el.postureFill.style.width = (U.clamp(p.posture / p.maxPosture, 0, 1) * 100) + '%';
         this.el.flaskCount.textContent = p.flasks;
         this.el.focusText.textContent = Math.floor(p.focus) + '%';
         this.el.focusBadge.classList.toggle('ready', p.focus >= 100);
@@ -1616,8 +1688,8 @@
       } else if (!bt) {
         this.el.bossBar.classList.add('hidden');
       }
-      if (this.state === 'playing' && this.nearInteractable) {
-        this.el.interactName.textContent = '互动 · ' + this.nearInteractable.name;
+      if (this.state === 'playing' && (this.executeTarget || this.nearInteractable)) {
+        this.el.interactName.textContent = this.executeTarget ? '处决 · 气竭目标' : ('互动 · ' + this.nearInteractable.name);
         this.el.interactPrompt.classList.add('show');
       } else this.el.interactPrompt.classList.remove('show');
     }
@@ -1734,7 +1806,7 @@
       const time = this.time;
       // 危险区预警
       for (const h of this.hazards) {
-        const s = project(h.x, h.y - 8);
+        const s = project(h.x, h.y - 8, (h.z || 0) / 100);
         if (!s.visible) continue;
         const active = h.timer > h.delay;
         const prog = U.clamp(h.timer / h.delay, 0, 1);
@@ -1753,7 +1825,7 @@
       // 敌人预警 & 血条
       for (const e of this.enemies) {
         if (e.dead) continue;
-        const p = project(e.x, e.y - 3);
+        const p = project(e.x, e.y - 3, (e.z || 0) / 100);
         if (!p.visible) continue;
         if (e.state === 'windup') {
           const cfg = e.cfg || {};
@@ -1763,7 +1835,7 @@
           ctx.strokeStyle = '#ff705c'; ctx.lineWidth = 1.8;
           ctx.beginPath(); ctx.ellipse(p.x, p.y + 5, (e.isElite ? 125 : 52) + prog * 20, 16 + prog * 5, 0, 0, TAU); ctx.stroke();
           if (e.cfg && e.cfg.ranged) {
-            const pp = project(this.player.x, this.player.y - 100);
+            const pp = project(this.player.x, this.player.y - 100, (this.player.z || 0) / 100);
             ctx.globalAlpha = .08 + prog * .2;
             ctx.setLineDash([7, 9]);
             ctx.beginPath(); ctx.moveTo(p.x, p.y - 60); ctx.lineTo(pp.x, pp.y); ctx.stroke();
@@ -1776,12 +1848,16 @@
           const w = 56, x = p.x - w / 2, y = p.y - (e.size ? e.size * 1.55 : 100);
           ctx.fillStyle = 'rgba(2,8,10,.72)'; ctx.fillRect(x, y, w, 4);
           ctx.fillStyle = hp > .4 ? '#69d9c8' : '#e06c5c'; ctx.fillRect(x, y, w * hp, 4);
+          const pp = U.clamp((e.posture || 0) / (e.maxPosture || 80), 0, 1);
+          ctx.fillStyle = 'rgba(2,8,10,.66)'; ctx.fillRect(x, y + 5, w, 3);
+          ctx.fillStyle = '#e8c47a'; ctx.fillRect(x, y + 5, w * pp, 3);
+          if (e.executable || e.staggered > 0) { ctx.fillStyle = '#ffe4a6'; ctx.font = '700 16px "STKaiti","KaiTi",serif'; ctx.textAlign = 'center'; ctx.fillText('气竭 · F 处决', p.x, y - 9); }
         }
       }
       // 心障 Boss 预警
       if (this.boss && !this.boss.dead) {
-        const bp = project(this.boss.x, this.boss.y - 8);
-        if (bp.visible && (this.boss.state === 'windup' || this.boss.pattern)) {
+        const bp = project(this.boss.x, this.boss.y - 8, (this.boss.z || 0) / 100);
+        if (bp.visible && (this.boss.state === 'windup' || this.boss.pattern || this.boss.executable)) {
           const prog = this.boss.pattern ? U.clamp((this.boss.patternT || 0) / .8, 0, 1) : 1;
           ctx.save();
           ctx.globalAlpha = .12 + prog * .22;
@@ -1793,6 +1869,7 @@
           ctx.setLineDash([8, 10]);
           ctx.beginPath(); ctx.moveTo(bp.x, bp.y - 120); ctx.lineTo(pp.x, pp.y); ctx.stroke();
           ctx.setLineDash([]);
+          if (this.boss.executable) { ctx.fillStyle = '#ffe4a6'; ctx.font = '700 19px "STKaiti","KaiTi",serif'; ctx.textAlign = 'center'; ctx.fillText('气竭 · F 处决', bp.x, bp.y - 300); }
           ctx.restore();
         }
       }

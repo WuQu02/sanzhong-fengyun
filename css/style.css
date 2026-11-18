@@ -206,6 +206,9 @@ body { position: fixed; inset: 0; }
 .hp-bar i { background: linear-gradient(90deg, #b93f41, #e0675d 62%, #f39b7d); box-shadow: 0 0 16px rgba(224,103,93,.3); }
 .hp-bar span { position: absolute; inset: 0; display: grid; place-items: center; font-size: 8px; letter-spacing: .08em; color: rgba(255,245,234,.78); transform: skewX(15deg); }
 .qi-bar { height: 7px; width: 78%; }
+.posture-bar { height: 5px; width: 78%; }
+.posture-bar i { background: linear-gradient(90deg, #8d6b30, #e8c47a); box-shadow: 0 0 12px rgba(232,196,122,.25); }
+.posture-bar span { position: absolute; right: 5px; top: -3px; font-family: var(--serif); font-size: 8px; color: rgba(232,196,122,.6); transform: skewX(15deg); }
 .qi-bar i { background: linear-gradient(90deg, #1b7696, #62dff7); box-shadow: 0 0 12px rgba(100,229,255,.32); }
 .qi-bar span { position: absolute; right: 5px; top: -2px; font-family: var(--serif); font-size: 9px; color: rgba(159,236,255,.72); transform: skewX(15deg); }
 .hud-badges { display: flex; gap: 16px; margin-top: 8px; align-items: center; }

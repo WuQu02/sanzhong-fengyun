@@ -197,6 +197,16 @@
 
     setIntensity(v) { this.intensity = U.clamp(v, 0, 1); }
 
+    playSound(type) { this.sfx(type); }
+
+    switchBGM(state, exploreTheme) {
+      if (state === this.bgmState) return;
+      this.bgmState = state;
+      if (state === 'combat') this.startMusic('boss');
+      else this.startMusic(exploreTheme || this.lastExploreTheme || 'snow');
+      if (exploreTheme) this.lastExploreTheme = exploreTheme;
+    }
+
     update() {
       if (!this.ctx || !this.playing) return;
       const now = this.ctx.currentTime;
@@ -413,6 +423,21 @@
         case 'warn':
           this._tone({ freq: 160, type: 'square', dur: .1, gain: .025 });
           this._tone({ freq: 160, type: 'square', dur: .1, gain: .025, delay: .16 }); break;
+        case 'deflect':
+          this._tone({ freq: 1900, slide: 640, type: 'sine', dur: .2, gain: .09 });
+          this._tone({ freq: 94, slide: 52, type: 'sawtooth', dur: .26, gain: .075 });
+          this._noise(.12, .11, 'highpass', 2600); break;
+        case 'perfectDodge':
+          this._tone({ freq: 1400, slide: 150, type: 'sine', dur: .55, gain: .06 });
+          this._noise(.48, .08, 'bandpass', 2100, 0, 380);
+          this._tone({ freq: 380, type: 'sine', dur: 1.1, gain: .025, delay: .12 }); break;
+        case 'squirrel':
+          [880, 1320, 1760].forEach((f, i) => this._tone({ freq: f, type: 'sine', dur: .12, gain: .035, delay: i * .06 })); break;
+        case 'chalk':
+          this._tone({ freq: 120, slide: 60, type: 'sine', dur: .12, gain: .08 });
+          this._noise(.1, .08, 'lowpass', 500); break;
+        case 'alert':
+          for (let i = 0; i < 4; i++) this._tone({ freq: i % 2 ? 640 : 430, type: 'sawtooth', dur: .32, gain: .034, delay: i * .3, filter: { type: 'lowpass', freq: 1200 } }); break;
       }
     }
 
