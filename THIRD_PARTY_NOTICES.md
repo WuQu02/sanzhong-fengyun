@@ -6,7 +6,7 @@
 - Version: r152.2
 - License: MIT
 - Source: https://github.com/mrdoob/three.js
-- Bundled file: `js/three.min.js`
+- Bundled file: `js/three-bundle.js` (core + postprocessing addons)
 
 Copyright © 2010-2023 three.js authors
 

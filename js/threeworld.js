@@ -168,6 +168,7 @@
       this.setupLights();
       this.resize();
       this.setVisible(false);
+      this._initPostFX();
     }
 
     _bindOrbit() {
@@ -291,7 +292,52 @@
       this.canvas.style.top = (g.offsetY || 0) + 'px';
       this.camera.aspect = 16 / 9;
       this.camera.updateProjectionMatrix();
+      if (this.composer) { this.composer.setPixelRatio(this.renderer.getPixelRatio()); this.composer.setSize(1920, 1080); if (this.colorGradePass) this.colorGradePass.uniforms.resolution.value.set(1920, 1080); }
     }
+    _initPostFX() {
+      if (!window.ThreePost) return;
+      try {
+        const P = window.ThreePost;
+        this.composer = new P.EffectComposer(this.renderer);
+        this.renderPass = new P.RenderPass(this.scene, this.camera);
+        this.composer.addPass(this.renderPass);
+        this.bloom = new P.UnrealBloomPass(new THREE.Vector2(1920, 1080), .55, .45, .86);
+        this.composer.addPass(this.bloom);
+        const gradeShader = {
+          uniforms: { tDiffuse: { value: null }, resolution: { value: new THREE.Vector2(1920, 1080) } },
+          vertexShader: 'varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
+          fragmentShader: `
+            uniform sampler2D tDiffuse; uniform vec2 resolution; varying vec2 vUv;
+            float luma(vec3 c){ return dot(c, vec3(.299,.587,.114)); }
+            void main(){
+              vec4 c = texture2D(tDiffuse, vUv);
+              vec2 px = 1.0 / resolution;
+              float l = luma(c.rgb);
+              float lx = luma(texture2D(tDiffuse, vUv + vec2(px.x,0.0)).rgb) - luma(texture2D(tDiffuse, vUv - vec2(px.x,0.0)).rgb);
+              float ly = luma(texture2D(tDiffuse, vUv + vec2(0.0,px.y)).rgb) - luma(texture2D(tDiffuse, vUv - vec2(0.0,px.y)).rgb);
+              float edge = smoothstep(.055, .22, length(vec2(lx,ly)));
+              vec3 col = c.rgb;
+              float lum = luma(col);
+              col = mix(vec3(lum), col, .92);
+              col *= vec3(.91, 1.0, 1.065);
+              col += vec3(-.012, .006, .018);
+              col = mix(col, vec3(.012,.020,.028), edge * .58);
+              gl_FragColor = vec4(col, c.a);
+            }`
+        };
+        this.colorGradePass = new P.ShaderPass(gradeShader);
+        this.composer.addPass(this.colorGradePass);
+        this.composer.addPass(new P.ShaderPass(P.GammaCorrectionShader));
+        this.composer.setPixelRatio(this.renderer.getPixelRatio());
+        this.composer.setSize(1920, 1080);
+      } catch (e) { console.warn('后处理关闭', e); this.composer = null; }
+    }
+
+    _renderFrame() {
+      if (this.composer) this.composer.render();
+      else this.renderer.render(this.scene, this.camera);
+    }
+
     setVisible(v) {
       if (this.failed) return;
       this.canvas.style.visibility = v ? 'visible' : 'hidden';
@@ -1310,7 +1356,7 @@
       if (this.titleBoss) this.updateBoss(this.titleBoss, { x: 1750, y: 850, phase: 1, state: 'idle', stateT: time, facing: -1, hurtFlash: 0, dead: false, deathT: 0, pattern: null, patternT: 0 }, time);
       this.camera.position.set(10.0 + Math.sin(time * .03) * .1, 4.45, 12.4);
       this.camera.lookAt(10.0, 1.95, 0);
-      this.renderer.render(this.scene, this.camera);
+      this._renderFrame();
     }
 
     renderWorld(game, shakeX, shakeY) {
@@ -1340,7 +1386,7 @@
       this.updateHazards(game);
       this.updateSecrets(game);
       if (this.updateInteractables3D) this.updateInteractables3D(game);
-      this.renderer.render(this.scene, this.camera);
+      this._renderFrame();
     }
 
     _closestTarget(p, game) {

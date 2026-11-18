@@ -56,6 +56,7 @@
 ## 内容
 
 - **约 40–60 分钟**的完整流程：开场动画、三章探索战斗、三道心诀、Boss 三阶段与结局；玩家可自行停留更久。
+- **后处理与动画**：UnrealBloom 泛光、冷青国风色彩分级、阈值边缘描边，以及 AnimationMixer 驱动的 Idle/Run/Attack/Dodge/Deflect 状态机。
 - **3D 动作战斗底层**：WASD 镜头相对全向移动、鼠标右键环绕镜头、玩家/Boss 架势条（Token 算力）、红光卸势弹反、气竭硬直、靠近按 `F` 处决、完美闪避 0.2 倍时间缩放、0.1 秒卡肉与受击击退。
 - **动态 BGM**：探索与战斗无缝切换；卸势、完美闪避、松鼠互动等使用独立程序化音效。
 - **3D 场景**：校门、雪地、兰蕙园竹林、逸夫楼旧教室、读论天台。低多边形角色、月光、雪花、雨、余烬与可环绕的动态摄影机。
@@ -96,10 +97,11 @@
 │  ├─ input.js               # 键盘、触屏、手柄输入
 │  ├─ audio.js               # Web Audio 音乐/音效与 Web Speech 语音
 │  ├─ art.js                 # 二维水墨过场、头像与 WebGL 回退
-│  ├─ three.min.js           # Three.js r152（MIT，见 THIRD_PARTY_NOTICES）
+│  ├─ three-bundle.js        # Three.js r152 + EffectComposer/Bloom（MIT）
 │  ├─ threeworld.js          # 3D 低多边形舞台、玩家、Boss、敌人与环境
 │  ├─ omens.js               # 天象事件与鲸影/摸鲸投影
 │  ├─ interactables3d.js     # 雪兔、猫、锦鲤、校铃等环境互动模型
+│  ├─ animation.js           # 玩家 AnimationMixer 状态机（Idle/Run/Attack/Dodge/Deflect）
 │  ├─ story.js               # 对白、三中校园叙事、成就、彩蛋与互动数据
 │  ├─ entities.js            # 玩家、敌人、Boss、投射物、粒子
 │  ├─ levels.js              # 章节、遭遇、波次与场景配置
@@ -111,7 +113,7 @@
 ```
 
 - 纯原生 JavaScript，无构建步骤。
-- Three.js 已本地化到 `js/three.min.js`，不需要 CDN。
+- Three.js 已本地化到 `js/three-bundle.js`，包含 EffectComposer、RenderPass、UnrealBloomPass 与 GammaCorrection，不需要 CDN。
 - 存档使用 `localStorage`，键名：`sanzhongfengyun_save_v1`；成就使用 `sanzhongfengyun_achievements_v1`；设置使用 `sanzhongfengyun_settings_v1`。
 - 采用 1920×1080 设计坐标；3D 渲染画布与 UI 按窗口等比缩放，高 DPI 设备自动提高渲染分辨率。
 
