@@ -182,8 +182,41 @@
     return { group: g, kind: 'sign' };
   };
 
+  T._makeSquirrel = function () {
+    const g = new THREE.Group();
+    const fur = this._std(0xb66b35, { roughness: .82, flat: true });
+    const fur2 = this._std(0xd99252, { roughness: .82, flat: true });
+    const belly = this._std(0xe3c49b, { roughness: .86 });
+    const dark = this._basic(0x1a1714);
+    const acorn = this._std(0x6b4b2c, { roughness: .8 });
+    // 大尾巴
+    const tail = new THREE.Group(); tail.position.set(-.28, .3, -.1); g.add(tail);
+    this._mesh(tail, new THREE.SphereGeometry(.3, 12, 10), fur2, -.12, .18, 0, .85, 1.6, .65, 0, 0, -.45);
+    this._mesh(tail, new THREE.SphereGeometry(.22, 10, 8), fur2, -.26, .5, 0, .75, 1.2, .55, 0, 0, -.7);
+    this._mesh(tail, new THREE.SphereGeometry(.15, 8, 6), belly, -.32, .75, .02, .7, .9, .5, 0, 0, -.8);
+    // 身体
+    this._mesh(g, new THREE.SphereGeometry(.2, 14, 10), fur, 0, .3, 0, .9, 1.25, .8);
+    this._mesh(g, new THREE.SphereGeometry(.15, 12, 8), belly, .02, .29, .12, .8, 1.1, .35);
+    // 头
+    this._mesh(g, new THREE.SphereGeometry(.17, 14, 10), fur, .03, .58, .02, 1, .95, .95);
+    this._mesh(g, new THREE.ConeGeometry(.07, .18, 4), fur2, -.02, .73, 0, 1, 1, .7, 0, 0, -.2);
+    this._mesh(g, new THREE.ConeGeometry(.07, .18, 4), fur2, .1, .73, 0, 1, 1, .7, 0, 0, .2);
+    this._mesh(g, new THREE.SphereGeometry(.026, 6, 5), dark, -.04, .6, .16);
+    this._mesh(g, new THREE.SphereGeometry(.026, 6, 5), dark, .1, .6, .16);
+    this._mesh(g, new THREE.SphereGeometry(.018, 6, 5), this._basic(0x3a2018), .03, .53, .17);
+    // 手里的松果
+    const ac = new THREE.Group(); ac.position.set(.18, .35, .17); g.add(ac);
+    this._mesh(ac, new THREE.SphereGeometry(.075, 8, 6), acorn, 0, 0, 0, .8, 1.1, .8);
+    this._mesh(ac, new THREE.ConeGeometry(.06, .08, 6), dark, 0, .08, 0);
+    // 无敌小光环
+    const halo = this._mesh(g, new THREE.TorusGeometry(.28, .012, 4, 20), this._basic(0xffdd93, { transparent: true, opacity: .38, additive: true }), 0, .96, 0, 1, .35, 1, Math.PI / 2, 0, 0);
+    this._sprite(g, this.tex.glowGold, 0xffd78c, 0, .35, -.1, 1.0, .7, .08, true);
+    addShadow(this, g, .6, .3);
+    return { group: g, kind: 'squirrel', tail, halo };
+  };
+
   T._makeInteractable = function (it) {
-    const f = { rabbit: '_makeRabbit', cat: '_makeCat', lantern: '_makeLantern', koi: '_makeKoi', chime: '_makeChime', crane: '_makeCrane', incense: '_makeIncense', bell: '_makeBell', swordsman: '_makeSwordsman', sign: '_makeSign', schoolbell: '_makeSchoolBell' }[it.kind];
+    const f = { rabbit: '_makeRabbit', cat: '_makeCat', lantern: '_makeLantern', koi: '_makeKoi', chime: '_makeChime', crane: '_makeCrane', incense: '_makeIncense', bell: '_makeBell', swordsman: '_makeSwordsman', sign: '_makeSign', schoolbell: '_makeSchoolBell', squirrel: '_makeSquirrel' }[it.kind];
     if (!f || !this[f]) return null;
     const m = this[f]();
     m.model = it;

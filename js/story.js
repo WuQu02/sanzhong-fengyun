@@ -11,7 +11,7 @@
     intro: [
       {
         art: 'classroom', chapter: '序 · 晚自习', speaker: '周娣',
-        text: '晚自习最后一节课，三中的走廊空得能听见雪。刘奥的座位空着，刘亚岚的桌上压着一封没写完的信。',
+        text: '晚自习最后一节课，三中的走廊空得能听见雪。刘奥的座位空着，刘亚岚的桌上压着一封没写完的信。窗台上，还蹲着一只叫肖志雄的小松鼠。',
         duration: 11, voice: 'narrator'
       },
       {
@@ -88,6 +88,7 @@
           S('这里明明是三中的后山。可校门，变成了山门。'),
           N('行动代号「深寻」。目标：找到刘奥，终结逆命之术。'),
           N('雪地里没有人。只有被抽走心念后，留下的墨色脚印。'),
+          N('肖志雄从雪里探出脑袋，抱着一颗松果跟在你后面。它看起来完全不怕鬼。'),
           S('先找到那些被困住的心。')
         ],
         clearLine: '心障已破 · 风雪让开了一条路',
@@ -108,6 +109,7 @@
         objective: '穿过千竹岭，寻找焚心祠',
         startDialogue: [
           S('旧教学楼的走廊，被雨泡成了竹海。'),
+          N('肖志雄蹲在竹枝上，尾巴一甩一甩，像是给你带路。'),
           A('刘奥……别再为我杀人了。'),
           S('亚岚的声音？他连自己的心，也一起困进了这座山里。')
         ],
@@ -128,6 +130,7 @@
         startDialogue: [
           S('高三教室的黑板，为什么会立在祠堂里？'),
           N('黑板上还留着半行粉笔字：距高考 100 天。'),
+          N('肖志雄蹲在黑板边，认真地看着那半行字。'),
           A('你若再往前，他也会死。'),
           S('所以，才必须由我终结这一切。')
         ],
@@ -150,6 +153,7 @@
         objective: '终结逆命之术，带刘奥回去',
         startDialogue: [
           N('天台之上，刘奥背对风雪，怀里抱着一柄断剑。这里和晚自习后的三中天台，一模一样。'),
+          N('栏杆上，肖志雄抱着一颗松果。它的尾巴翘得比刘奥的剑还高。'),
           L('你身上没有一丝人气。来杀我的？'),
           S('我来带你去见他。'),
           L('见他？我烧了整座山，才让他还有一口气。你凭什么？'),
@@ -237,7 +241,7 @@
       },
       {
         art: 'classroom', speaker: '周娣',
-        text: '三中的下课铃响了。刘奥的座位依然空着。刘亚岚把那封信折成一只纸鲸，放进窗台的雪里。',
+        text: '三中的下课铃响了。刘奥的座位依然空着。刘亚岚把那封信折成一只纸鲸，放进窗台的雪里。肖志雄把一颗松果放在旁边。',
         duration: 11, voice: 'narrator'
       },
       {
@@ -298,7 +302,8 @@
     { id: 'mountain_guest', seal: '客', name: '山中有客', desc: '在竹海遇见斗笠客谢无咎。' },
     { id: 'cat_buff', seal: '猫', name: '猫奴', desc: '接受狸花猫或灰猫的喵力加持。' },
     { id: 'deep_think', seal: '想', name: '深度思考', desc: '在风雪中静止 20 秒，等一个答案。' },
-    { id: 'server_busy', seal: '忙', name: '服务器繁忙', desc: '连续三次在气或心念不足时试图出招。' }
+    { id: 'server_busy', seal: '忙', name: '服务器繁忙', desc: '连续三次在气或心念不足时试图出招。' },
+    { id: 'squirrel', seal: '松', name: '肖志雄', desc: '遇见那只无法被伤害的小松鼠。' }
   ];
   window.SECRET_LORE = {
     snow: { id: 'snow_whale', x: 128, y: 760, text: '雪地里埋着一只小鲸鱼的尾巴。它似乎并不怕冷。' },
@@ -315,11 +320,13 @@
       { id: 'rabbit_snow', kind: 'rabbit', name: '雪兔', x: 438, y: 850, z: 2.2, text: '雪兔抖了抖耳朵，把脑袋蹭进你的掌心。', heal: 6 },
       { id: 'cat_snow', kind: 'cat', name: '狸花猫', x: 1880, y: 850, z: -2.3, buff: 'cat', text: '猫打了个呵欠，尾巴卷住了你的手腕。它决定把今天的喵力借给你。' },
       { id: 'lantern_snow', kind: 'lantern', name: '长明灯', x: 3330, y: 850, z: -2.4, text: '灯芯自己亮了。雪里多了一小圈暖色。', heal: 12 },
-      { id: 'schoolbell_snow', kind: 'schoolbell', name: '三中·老铃', x: 720, y: 850, z: 2.2, text: '你摇了摇三中的老铃。铃声一响，整座雪山都安静了，像晚自习突然停电。' }
+      { id: 'schoolbell_snow', kind: 'schoolbell', name: '三中·老铃', x: 720, y: 850, z: 2.2, text: '你摇了摇三中的老铃。铃声一响，整座雪山都安静了，像晚自习突然停电。' },
+      { id: 'squirrel_snow', kind: 'squirrel', name: '肖志雄', x: 830, y: 850, z: -1.8, achievement: 'squirrel', text: '一只小松鼠抱着一颗松果，胸口的绒毛上别着一枚三中校徽。你挥剑试了试，它毫发无伤。' }
     ],
     bamboo: [
       { id: 'koi_bamboo', kind: 'koi', name: '锦鲤', x: 470, y: 850, z: 2.2, text: '锦鲤跃出水面，带起一串被打碎的月光。', heal: 8 },
       { id: 'sign_bamboo', kind: 'sign', name: '兰蕙园', x: 325, y: 850, z: 2.4, text: '兰蕙园的竹子在夜里也会背书。风一吹，它们就齐声念：求真、扬善、尚美。' },
+      { id: 'squirrel_bamboo', kind: 'squirrel', name: '肖志雄', x: 820, y: 850, z: -1.8, achievement: 'squirrel', text: '肖志雄从竹枝上跳下来，把松果藏进你的口袋。它完全不怕你的剑。' },
       { id: 'chime_bamboo', kind: 'chime', name: '竹风铃', x: 2150, y: 850, z: -2.1, text: '风铃响了三声。雨忽然变得很轻。' },
       { id: 'swordsman_bamboo', kind: 'swordsman', name: '谢无咎', x: 560, y: 850, z: -2.8, voice: 'boss', achievement: 'mountain_guest', text: '斗笠客没有回头：山上的人，已经听不见雪落的声音了。你若要去，就别带怜悯。' },
       { id: 'crane_bamboo', kind: 'crane', name: '纸鹤', x: 4080, y: 850, z: 2.0, text: '纸鹤展开翅膀，绕着你飞了半圈，落在更远的竹枝上。' }
@@ -328,8 +335,11 @@
       { id: 'incense_temple', kind: 'incense', name: '香炉', x: 470, y: 850, z: -2.2, text: '香灰里浮起一个很旧的名字。你没有看清，但心口暖了一下。', heal: 24 },
       { id: 'bell_temple', kind: 'bell', name: '古钟', x: 2380, y: 850, z: -2.3, text: '钟声穿过火海。远处的什么东西，安静了下来。' },
       { id: 'cat_temple', kind: 'cat', name: '灰猫', x: 4460, y: 850, z: 2.1, buff: 'cat', text: '灰猫蹲在烧焦的门槛上，用尾巴扫了扫你的鞋尖。喵力正在传输。' },
-      { id: 'sign_temple', kind: 'sign', name: '告示牌', x: 640, y: 850, z: 2.2, text: '告示：祠内严禁烧烤、渡劫、谈恋爱；违者罚抄《心经》三遍。' }
+      { id: 'sign_temple', kind: 'sign', name: '告示牌', x: 640, y: 850, z: 2.2, text: '告示：祠内严禁烧烤、渡劫、谈恋爱；违者罚抄《心经》三遍。' },
+      { id: 'squirrel_temple', kind: 'squirrel', name: '肖志雄', x: 900, y: 850, z: -1.8, achievement: 'squirrel', text: '肖志雄蹲在烧焦的门槛上，认真地看着你。它似乎比这场梦还要真实，而且怎么砍都不会受伤。' }
     ],
-    climax: []
+    climax: [
+      { id: 'squirrel_climax', kind: 'squirrel', name: '肖志雄', x: 430, y: 850, z: -1.8, achievement: 'squirrel', text: '肖志雄蹲在天台栏杆上，抱着一颗松果。刘奥的剑风从旁边刮过去，它连毛都没掉一根。' }
+    ]
   };
 })();

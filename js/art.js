@@ -1736,6 +1736,20 @@
       ctx.strokeStyle = '#0b1114'; ctx.lineWidth = 14;
       ctx.strokeRect(110, 160, 540, 480);
       ctx.beginPath(); ctx.moveTo(380, 160); ctx.lineTo(380, 640); ctx.moveTo(110, 400); ctx.lineTo(650, 400); ctx.stroke();
+      // 窗台上的肖志雄
+      ctx.save(); ctx.translate(585, 610);
+      ctx.fillStyle = '#c0793f';
+      ctx.beginPath(); ctx.ellipse(0, 0, 13, 18, -.15, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.arc(3, -19, 9, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(-2, -27); ctx.lineTo(-7, -36); ctx.lineTo(2, -29); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(8, -27); ctx.lineTo(14, -35); ctx.lineTo(12, -26); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#7c4a29';
+      ctx.beginPath(); ctx.ellipse(-11, -2, 8, 18, -.4, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.arc(-17, -20, 7, 0, TAU); ctx.fill();
+      ctx.fillStyle = '#1b1612';
+      ctx.beginPath(); ctx.arc(0, -20, 1.4, 0, TAU); ctx.fill(); ctx.beginPath(); ctx.arc(7, -20, 1.4, 0, TAU); ctx.fill();
+      ctx.fillStyle = '#6b4b2c'; ctx.beginPath(); ctx.arc(11, -8, 3, 0, TAU); ctx.fill();
+      ctx.restore();
       // 黑板
       ctx.fillStyle = '#2b3e37'; ctx.fillRect(790, 210, 850, 380);
       ctx.strokeStyle = '#806447'; ctx.lineWidth = 16; ctx.strokeRect(790, 210, 850, 380);
