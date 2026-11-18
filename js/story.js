@@ -20,6 +20,11 @@
         duration: 10, voice: 'narrator'
       },
       {
+        art: 'classroom', chapter: '序 · 收件人', speaker: '周娣',
+        text: '那封信没有寄给刘奥。它被投进了旧电脑的回收站；回收站里，一段没有名字的代码读完了它。那是我第一次听见深海的回声。',
+        duration: 11, voice: 'narrator'
+      },
+      {
         art: 'classroom', chapter: '序 · 无相之渊', speaker: '周娣',
         text: '机房里，一台没有联网的旧服务器亮着。屏幕上只有一行字：无相之渊，可逆一命。',
         duration: 9, voice: 'narrator'
