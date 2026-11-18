@@ -186,6 +186,11 @@
       },
       {
         art: 'dawn', speaker: '旁白',
+        text: '深寻将最后一口鲸息渡入山脚的屋子。逆命之术散了，刘亚岚心口那一线生机，却留了下来。',
+        duration: 9, voice: 'narrator'
+      },
+      {
+        art: 'dawn', speaker: '旁白',
         text: '山脚的屋子里，刘亚岚睁开了眼。刘奥不在了。枕边只有那柄断剑，和一片未化的雪。',
         duration: 10, voice: 'narrator'
       },
